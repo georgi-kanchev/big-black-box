@@ -1,0 +1,5 @@
+ecosystem		https://github.com/sedyh/awesome-ebitengine
+data layout 	https://youtu.be/ShSGHb65f3M	https://youtu.be/-m7lhJ_Mzdg
+func layout		https://youtu.be/JxI3Eu5DPwE
+
+stack/heap/func-inline analysis		go build -gcflags="-m" file.go
