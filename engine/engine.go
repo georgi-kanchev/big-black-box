@@ -23,10 +23,11 @@ func Run(gameLoop func()) {
 		log.Fatal(err)
 	}
 }
-
-func Exit() {
+func Quit() {
 	internal.State.Engine.Exiting = true
 }
+
+//=================================================================
 
 func GetTargetTickRate() int {
 	return internal.State.Engine.TargetTickRate
