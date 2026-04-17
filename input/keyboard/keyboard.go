@@ -1,6 +1,7 @@
 package keyboard
 
 import (
+	"big-black-box/internal"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -11,13 +12,13 @@ type Key ebiten.Key
 
 // Input returns the text characters typed this frame.
 func Input() string {
-	return string(ebiten.AppendInputChars(nil))
+	return internal.InputString
 }
 
 func Pressed() []Key {
-	pressed = pressed[:0] // Reset length, keep capacity
-	pressed = inpututil.AppendPressedKeys(pressed)
-	return *(*[]Key)(unsafe.Pointer(&pressed))
+	internal.KeysPressed = internal.KeysPressed[:0]
+	internal.KeysPressed = inpututil.AppendPressedKeys(internal.KeysPressed)
+	return *(*[]Key)(unsafe.Pointer(&internal.KeysPressed))
 }
 
 func IsPressed(key Key) bool {
@@ -42,30 +43,22 @@ func IsJustReleased(key Key) bool {
 }
 
 func IsAnyPressed() bool {
-	pressed = pressed[:0]
-	return len(inpututil.AppendPressedKeys(pressed)) > 0
+	internal.KeysPressed = internal.KeysPressed[:0]
+	return len(inpututil.AppendPressedKeys(internal.KeysPressed)) > 0
 }
 func IsAnyJustPressed() bool {
-	justPressed = justPressed[:0]
-	return len(inpututil.AppendJustPressedKeys(justPressed)) > 0
+	return internal.AnyKeyJustPressed
 }
 func IsAnyJustReleased() bool {
-	justReleased = justReleased[:0]
-	return len(inpututil.AppendJustReleasedKeys(justReleased)) > 0
+	return internal.AnyKeyJustReleased
 }
 
-// IsComboJustPressed checks if the keys are all held,
-// they were pressed in the specific order provided,
-// and the final key was just pressed this frame.
 func IsComboJustPressed(keys ...Key) bool {
 	if !IsJustPressed(keys[len(keys)-1]) {
 		return false
 	}
 	return combo(keys)
 }
-
-// IsComboHeld checks if the keys are held in the specific order
-// and follows the repeat-logic for the final key.
 func IsComboHeld(keys ...Key) bool {
 	if !IsHeld(keys[len(keys)-1]) {
 		return false
@@ -81,23 +74,18 @@ func (k Key) IsJustPressed() bool  { return IsJustPressed(k) }
 func (k Key) IsJustReleased() bool { return IsJustReleased(k) }
 
 // private =================================================================
-// private
-
-var pressed, justPressed, justReleased = make([]ebiten.Key, 0, 8), make([]ebiten.Key, 0, 8), make([]ebiten.Key, 0, 8)
-
-//=================================================================
 
 func combo(keys []Key) bool {
-	pressed = pressed[:0]
-	pressed = inpututil.AppendPressedKeys(pressed)
+	internal.KeysPressed = internal.KeysPressed[:0]
+	internal.KeysPressed = inpututil.AppendPressedKeys(internal.KeysPressed)
 
-	if len(pressed) != len(keys) {
+	if len(internal.KeysPressed) != len(keys) {
 		return false
 	}
 
 	for _, k := range keys {
 		found := false
-		for _, p := range pressed {
+		for _, p := range internal.KeysPressed {
 			if k == Key(p) {
 				found = true
 				break

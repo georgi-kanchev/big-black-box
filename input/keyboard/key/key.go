@@ -1,7 +1,7 @@
 package key
 
 import (
-	"big-black-box/keyboard"
+	"big-black-box/input/keyboard"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
