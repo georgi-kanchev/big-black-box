@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	None                        = -1
 	A              keyboard.Key = keyboard.Key(ebiten.KeyA)
 	B              keyboard.Key = keyboard.Key(ebiten.KeyB)
 	C              keyboard.Key = keyboard.Key(ebiten.KeyC)
@@ -127,8 +128,8 @@ func ToName(key keyboard.Key) string {
 //=================================================================
 
 var nameToKey = map[string]keyboard.Key{
-	"A": A, "B": B, "C": C, "D": D, "E": E, "F": F, "G": G, "H": H, "I": I, "J": J, "K": K, "L": L, "M": M, "N": N, "O": O,
-	"P": P, "Q": Q, "R": R, "S": S, "T": T, "U": U, "V": V, "W": W, "X": X, "Y": Y, "Z": Z,
+	"None": None, "A": A, "B": B, "C": C, "D": D, "E": E, "F": F, "G": G, "H": H, "I": I, "J": J, "K": K, "L": L, "M": M,
+	"N": N, "O": O, "P": P, "Q": Q, "R": R, "S": S, "T": T, "U": U, "V": V, "W": W, "X": X, "Y": Y, "Z": Z,
 	"AltLeft": AltLeft, "AltRight": AltRight,
 	"ArrowDown": ArrowDown, "ArrowLeft": ArrowLeft, "ArrowRight": ArrowRight, "ArrowUp": ArrowUp,
 	"Backquote": Backquote, "Backslash": Backslash, "Backspace": Backspace,
@@ -150,8 +151,8 @@ var nameToKey = map[string]keyboard.Key{
 }
 
 var keyToName = map[keyboard.Key]string{
-	A: "A", B: "B", C: "C", D: "D", E: "E", F: "F", G: "G", H: "H", I: "I", J: "J", K: "K", L: "L", M: "M", N: "N", O: "O",
-	P: "P", Q: "Q", R: "R", S: "S", T: "T", U: "U", V: "V", W: "W", X: "X", Y: "Y", Z: "Z",
+	None: "None", A: "A", B: "B", C: "C", D: "D", E: "E", F: "F", G: "G", H: "H", I: "I", J: "J", K: "K", L: "L", M: "M",
+	N: "N", O: "O", P: "P", Q: "Q", R: "R", S: "S", T: "T", U: "U", V: "V", W: "W", X: "X", Y: "Y", Z: "Z",
 	AltLeft: "AltLeft", AltRight: "AltRight",
 	ArrowDown: "ArrowDown", ArrowLeft: "ArrowLeft", ArrowRight: "ArrowRight", ArrowUp: "ArrowUp",
 	Backquote: "Backquote", Backslash: "Backslash", Backspace: "Backspace",

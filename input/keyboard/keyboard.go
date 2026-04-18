@@ -2,7 +2,6 @@ package keyboard
 
 import (
 	"big-black-box/internal"
-	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -15,10 +14,15 @@ func Input() string {
 	return internal.InputString
 }
 
-func Pressed() []Key {
+func Pressed() [5]Key {
 	internal.KeysPressed = internal.KeysPressed[:0]
 	internal.KeysPressed = inpututil.AppendPressedKeys(internal.KeysPressed)
-	return *(*[]Key)(unsafe.Pointer(&internal.KeysPressed))
+
+	var result [5]Key
+	for i := 0; i < len(internal.KeysPressed) && i < 5; i++ {
+		result[i] = Key(internal.KeysPressed[i])
+	}
+	return result
 }
 
 func IsPressed(key Key) bool {
@@ -53,17 +57,50 @@ func IsAnyJustReleased() bool {
 	return internal.AnyKeyJustReleased
 }
 
-func IsComboJustPressed(keys ...Key) bool {
-	if !IsJustPressed(keys[len(keys)-1]) {
+func IsComboPressed(key1, key2, key3 Key) bool {
+	if key1 != keyNone && !IsPressed(key1) {
 		return false
 	}
-	return combo(keys)
+	if key2 != keyNone && !IsPressed(key2) {
+		return false
+	}
+	if key3 != keyNone && !IsPressed(key3) {
+		return false
+	}
+
+	return checkOrder(key1, key2, key3)
 }
-func IsComboHeld(keys ...Key) bool {
-	if !IsHeld(keys[len(keys)-1]) {
+func IsComboJustPressed(key1, key2, key3 Key) bool {
+	var trigger Key
+	if key3 != keyNone {
+		trigger = key3
+	} else if key2 != keyNone {
+		trigger = key2
+	} else {
+		trigger = key1
+	}
+
+	if !IsJustPressed(trigger) {
 		return false
 	}
-	return combo(keys)
+
+	return IsComboPressed(key1, key2, key3)
+}
+func IsComboHeld(key1, key2, key3 Key) bool {
+	var trigger Key
+	if key3 != keyNone {
+		trigger = key3
+	} else if key2 != keyNone {
+		trigger = key2
+	} else {
+		trigger = key1
+	}
+
+	if !IsHeld(trigger) {
+		return false
+	}
+
+	return IsComboPressed(key1, key2, key3)
 }
 
 //=================================================================
@@ -75,32 +112,18 @@ func (k Key) IsJustReleased() bool { return IsJustReleased(k) }
 
 // private =================================================================
 
-func combo(keys []Key) bool {
-	internal.KeysPressed = internal.KeysPressed[:0]
-	internal.KeysPressed = inpututil.AppendPressedKeys(internal.KeysPressed)
+const keyNone = -1
 
-	if len(internal.KeysPressed) != len(keys) {
+func checkOrder(k1, k2, k3 Key) bool {
+	var d1 = inpututil.KeyPressDuration(ebiten.Key(k1))
+	var d2 = inpututil.KeyPressDuration(ebiten.Key(k2))
+	var d3 = inpututil.KeyPressDuration(ebiten.Key(k3))
+
+	if k2 != keyNone && d1 <= d2 {
 		return false
 	}
-
-	for _, k := range keys {
-		found := false
-		for _, p := range internal.KeysPressed {
-			if k == Key(p) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
+	if k3 != keyNone && d2 <= d3 {
+		return false
 	}
-
-	for i := 0; i < len(keys)-1; i++ {
-		if inpututil.KeyPressDuration(ebiten.Key(keys[i])) <= inpututil.KeyPressDuration(ebiten.Key(keys[i+1])) {
-			return false
-		}
-	}
-
 	return true
 }

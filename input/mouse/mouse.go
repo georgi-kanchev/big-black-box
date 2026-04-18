@@ -1,8 +1,6 @@
 package mouse
 
 import (
-	"unsafe"
-
 	"big-black-box/internal"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -41,14 +39,19 @@ func ScrollSmooth() float32 {
 	return internal.SmoothScroll
 }
 
-func Pressed() []Button {
+func Pressed() [3]Button {
 	internal.ButtonsPressed = internal.ButtonsPressed[:0]
 	for b := ebiten.MouseButton0; b <= ebiten.MouseButtonMax; b++ {
 		if ebiten.IsMouseButtonPressed(b) {
 			internal.ButtonsPressed = append(internal.ButtonsPressed, b)
 		}
 	}
-	return *(*[]Button)(unsafe.Pointer(&internal.ButtonsPressed))
+
+	var result [3]Button
+	for i := 0; i < len(internal.ButtonsPressed) && i < 3; i++ {
+		result[i] = Button(internal.ButtonsPressed[i])
+	}
+	return result
 }
 
 func IsPressed(button Button) bool {
