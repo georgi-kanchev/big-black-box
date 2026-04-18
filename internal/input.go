@@ -1,21 +1,11 @@
 package internal
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
-
-type Data struct {
-	Engine Engine
-	Window Window
-}
-
-var State Data
-var GameLoop func()
 
 var MouseX, MouseY, MouseDeltaX, MouseDeltaY, SmoothScroll, Scroll float32
 var ButtonsPressed = make([]ebiten.MouseButton, 0, 5)
@@ -24,24 +14,6 @@ var KeysPressed = make([]ebiten.Key, 0, 5)
 var InputBuffer = make([]rune, 0, 16)
 var InputString string
 var AnyKeyJustPressed, AnyKeyJustReleased bool
-
-//=================================================================
-
-func (d *Data) Update() error {
-	if d.Engine.Exiting {
-		return ebiten.Termination
-	}
-	cacheInput()
-	GameLoop()
-	return nil
-}
-func (d *Data) Draw(screen *ebiten.Image) {
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("FPS: %f", ebiten.ActualFPS()), 0, 0)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("TPS: %f", ebiten.ActualTPS()), 0, 16)
-}
-func (d *Data) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return outsideWidth / 4, outsideHeight / 4
-}
 
 // private =================================================================
 
