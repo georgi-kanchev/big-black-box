@@ -12,6 +12,7 @@ func Insert(text, part string, atIndex int) string {
 	var after = Part(text, atIndex, lastIndex)
 	return before + part + after
 }
+
 func Part(text string, fromIndex, toIndex int) string {
 	var runes = []rune(text)
 	var length = len(runes)
@@ -24,14 +25,13 @@ func Part(text string, fromIndex, toIndex int) string {
 
 	return string(runes[start:end])
 }
+
 func Replace(text, part, with string) string {
 	return strings.ReplaceAll(text, part, with)
 }
-func Remove(text string, parts ...string) string {
-	for _, part := range parts {
-		text = Replace(text, part, "")
-	}
-	return text
+
+func Remove(text string, part string) string {
+	return Replace(text, part, "")
 }
 
 // Progress 0..1 for start-to-end and 0..-1 for end-to-start.
@@ -48,31 +48,31 @@ func Reveal(text string, progress float32) string {
 }
 
 // Positive length trims from the end, negative length trims from the start. Default indicator if skipped: '…'
-func Limit(text string, length int, indicator ...string) string {
+func Limit(text string, length int, indicator string) string {
 	if length == 0 {
 		return ""
 	}
 
-	var ind = "…"
-	if len(indicator) > 0 {
-		ind = indicator[0]
+	if indicator == "" {
+		indicator = "…"
 	}
+
 	var textRunes = []rune(text)
-	var indicatorLen = len([]rune(ind))
+	var indicatorLen = len([]rune(indicator))
 	var textLen = len(textRunes)
 	var absMax = number.Unsign(length)
 	var trimLen = absMax - indicatorLen
 
 	if length > 0 && textLen > int(length) {
 		if trimLen <= 0 {
-			return ind
+			return indicator
 		}
-		return string(textRunes[:trimLen]) + ind
+		return string(textRunes[:trimLen]) + indicator
 	} else if length < 0 && textLen > absMax {
 		if trimLen <= 0 {
-			return ind
+			return indicator
 		}
-		return ind + string(textRunes[textLen-trimLen:])
+		return indicator + string(textRunes[textLen-trimLen:])
 	}
 
 	return text
@@ -80,38 +80,38 @@ func Limit(text string, length int, indicator ...string) string {
 
 // Returns the text before the part. If the part is not found, returns the original text.
 func Before(text, part string) string {
-	var pos = strings.Index(text, part)
-	if pos == -1 {
+	var position = strings.Index(text, part)
+	if position == -1 {
 		return text
 	}
-	return text[:pos]
+	return text[:position]
 }
 
 // Returns the text after the part. If the part is not found, returns the original text.
 func After(text, part string) string {
-	var pos = strings.Index(text, part)
-	if pos == -1 {
+	var position = strings.Index(text, part)
+	if position == -1 {
 		return text
 	}
-	return text[pos+len(part):]
+	return text[position+len(part):]
 }
 
 // Returns the text between the first part and the second part. If one of the parts is not found,
 // returns the original text.
 func Between(text, firstPart, secondPart string) string {
-	var sPos = strings.Index(text, firstPart)
-	if sPos == -1 {
+	var startPosition = strings.Index(text, firstPart)
+	if startPosition == -1 {
 		return text
 	}
 
 	// Start searching for the endAnchor AFTER the startAnchor
-	var remaining = text[sPos+len(firstPart):]
-	var ePos = strings.Index(remaining, secondPart)
-	if ePos == -1 {
+	var remaining = text[startPosition+len(firstPart):]
+	var endPosition = strings.Index(remaining, secondPart)
+	if endPosition == -1 {
 		return text
 	}
 
-	return remaining[:ePos]
+	return remaining[:endPosition]
 }
 
 // Returns a text consisting of the provided amount of copies of the text. If count is 0 or negative, returns "".
@@ -139,9 +139,9 @@ func Wrap(text string, lineLength int) string {
 			internal.BuilderWriteByte('\n')
 		}
 	}
-	var res = internal.BuilderResult()
+	var result = internal.BuilderResult()
 	internal.BuilderPop()
-	return res
+	return result
 }
 
 // Breaks the text into lines with a maximum length but only breaks at whitespace to keep words intact.
@@ -177,7 +177,7 @@ func WrapWords(text string, lineLength int) string {
 			currentLineLength = 0
 		}
 	}
-	var res = internal.BuilderResult()
+	var result = internal.BuilderResult()
 	internal.BuilderPop()
-	return res
+	return result
 }
