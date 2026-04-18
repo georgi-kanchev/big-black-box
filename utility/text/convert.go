@@ -5,7 +5,6 @@ import (
 	b64 "encoding/base64"
 	"fmt"
 	"math"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -67,11 +66,6 @@ func FromBase64(base64 string) string {
 	return string(decodedBytes)
 }
 
-// Split text into words (handles spaces, underscores and dashes).
-func SplitWords(text string) []string {
-	re := regexp.MustCompile(`[a-z0-9]+|[A-Z][a-z0-9]*|[A-Z]+(?=[A-Z][a-z0-9]|$)`)
-	return re.FindAllString(strings.ToLower(text), -1)
-}
 func Split(text, divider string) []string {
 	if text == "" {
 		return nil

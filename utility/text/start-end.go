@@ -32,7 +32,7 @@ func PadRight(text string, length int, pad string) string {
 }
 func PadZeros(number float32, amountOfZeros int) string {
 	if amountOfZeros == 0 {
-		return New(number)
+		return Start().Float(number).End()
 	}
 	if amountOfZeros < 0 {
 		var width = -amountOfZeros
