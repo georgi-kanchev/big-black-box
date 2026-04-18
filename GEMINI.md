@@ -7,7 +7,8 @@ We are currently porting an existing 2D engine from **raylib-go** to **ebiten**.
 - **No Tests:** We do not write tests for this project.
 - **Explicit Variable Declaration:** Use `var` instead of `:=` for all variable declarations. The only exception is loop initializers (e.g., `for i := 0; ...`) where `var` is not supported by Go syntax.
 - **Value Types Only:** Always use value types. Never use pointers unless absolutely required by an external library interface (e.g., Ebiten).
-- **Naming Conventions:** Avoid single-letter parameter names in the public API. Use descriptive names like `value`, `index`, or `text`. Shorter variants are only acceptable for unexported functions or internal implementation details.
+- **Naming Conventions:** Avoid abbreviated or shortened parameter names in the public API (e.g., use `index` instead of `idx`, `value` instead of `val`, `string` instead of `str`). Short but complete words are preferred if they are descriptive enough. Never shorten or abbreviate names for the sake of brevity in the API. Shorter variants are only acceptable for unexported functions or internal implementation details.
+- **Formatting:** Do not adjust or "clean up" new lines between functions; preserve existing spacing as it is managed manually.
 - **Minimal Heap Allocations:** Keep heap allocations to an absolute minimum. Avoid any code patterns that cause variables to escape to the heap.
 
 ## Architecture

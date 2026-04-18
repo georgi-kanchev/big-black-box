@@ -9,15 +9,12 @@ import (
 	"time"
 )
 
-var seedCounter uint64
-
 func AnySeed() float32 {
 	seedCounter++
 	var n = time.Now().UnixNano()
 	var h = hashSeed(uint64(n), seedCounter)
 	return float32(h) / 18446744073709551615.0
 }
-
 func CombineSeeds[T number.Number](seed1, seed2 T) T {
 	var c1, c2 uint64
 	switch any(seed1).(type) {
@@ -62,7 +59,6 @@ func CombineSeeds[T number.Number](seed1, seed2 T) T {
 	}
 	return zero
 }
-
 func Range[T number.Number](min, max T, seed float32) T {
 	switch any(min).(type) {
 	case int, int8, int16, int32, int64:
@@ -75,14 +71,12 @@ func Range[T number.Number](min, max T, seed float32) T {
 	var zero T
 	return zero
 }
-
 func HasChance(percent, seed float32) bool {
 	if percent <= 0 {
 		return false
 	}
 	return Range(float32(0), 100, seed) <= min(100, percent)
 }
-
 func Shuffle[T any](items []T, seed float32) []T {
 	for i := len(items) - 1; i > 0; i-- {
 		var j = int(Range(0, i, seed))
@@ -90,7 +84,6 @@ func Shuffle[T any](items []T, seed float32) []T {
 	}
 	return items
 }
-
 func PickFrom[T any](items []T, seed float32) T {
 	if len(items) == 0 {
 		var zero T
@@ -99,8 +92,8 @@ func PickFrom[T any](items []T, seed float32) T {
 	return items[int(Range(0, len(items)-1, seed))]
 }
 
-// =================================================================
-// private
+// private =================================================================
+var seedCounter uint64
 
 func hashSeed(seed, value uint64) uint64 {
 	seed ^= value
@@ -109,7 +102,6 @@ func hashSeed(seed, value uint64) uint64 {
 	seed ^= seed >> 16
 	return seed
 }
-
 func rangeInt(val1, val2 int64, seed float32) int64 {
 	var ua, ub uint64
 	ua, ub = uint64(val1), uint64(val2)
@@ -130,7 +122,6 @@ func rangeInt(val1, val2 int64, seed float32) int64 {
 	var result = ua + (s*diff)/2147483647
 	return int64(result)
 }
-
 func rangeUint(ua, ub uint64, seed float32) uint64 {
 	if ua == ub {
 		return ua
@@ -148,7 +139,6 @@ func rangeUint(ua, ub uint64, seed float32) uint64 {
 	var result = ua + (s*diff)/2147483647
 	return result
 }
-
 func rangeFloat(fa, fb float64, seed float32) float64 {
 	if fa == fb {
 		return fa

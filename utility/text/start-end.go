@@ -1,7 +1,7 @@
 package text
 
 import (
-	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -34,11 +34,17 @@ func PadZeros(number float32, amountOfZeros int) string {
 	if amountOfZeros == 0 {
 		return Start().Float(number).End()
 	}
+
 	if amountOfZeros < 0 {
 		var width = -amountOfZeros
-		return fmt.Sprintf("%0*d", width, int(number))
+		var s = strconv.Itoa(int(number))
+		for Length(s) < width {
+			s = "0" + s
+		}
+		return s
 	}
-	return fmt.Sprintf("%.*f", amountOfZeros, number)
+
+	return strconv.FormatFloat(float64(number), 'f', amountOfZeros, 32)
 }
 
 func Trim(text string) string {
@@ -53,12 +59,11 @@ func TrimEnd(text string) string {
 
 // Surrounds a text with the given start part and end part.
 // If end part is empty, it uses the start part for both sides.
-func SurroundWith(text, startPart string, endPart ...string) string {
-	var end = startPart
-	if len(endPart) > 0 {
-		end = endPart[0]
+func SurroundWith(text, startPart string, endPart string) string {
+	if endPart == "" {
+		endPart = startPart
 	}
-	return startPart + text + end
+	return startPart + text + endPart
 }
 
 // Adds the part to the start of the text only if it doesn't already have it.
@@ -79,14 +84,13 @@ func EnsureEnd(text, part string) string {
 
 // Removes the given start part and end part only if both are present.
 // If end part is empty, it looks for the start part on both sides.
-func Chop(text, startPart string, endPart ...string) string {
-	var end = startPart
-	if len(endPart) > 0 {
-		end = endPart[0]
+func Chop(text, startPart string, endPart string) string {
+	if endPart == "" {
+		endPart = startPart
 	}
 
-	if strings.HasPrefix(text, startPart) && strings.HasSuffix(text, end) {
-		return text[len(startPart) : len(text)-len(end)]
+	if strings.HasPrefix(text, startPart) && strings.HasSuffix(text, endPart) {
+		return text[len(startPart) : len(text)-len(endPart)]
 	}
 	return text
 }
