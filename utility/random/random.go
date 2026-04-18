@@ -9,24 +9,27 @@ import (
 	"time"
 )
 
+var seedCounter uint64
+
 func AnySeed() float32 {
 	seedCounter++
 	var n = time.Now().UnixNano()
 	var h = hashSeed(uint64(n), seedCounter)
 	return float32(h) / 18446744073709551615.0
 }
-func CombineSeeds[T number.Number](s1, s2 T) T {
+
+func CombineSeeds[T number.Number](seed1, seed2 T) T {
 	var c1, c2 uint64
-	switch any(s1).(type) {
+	switch any(seed1).(type) {
 	case int, int8, int16, int32, int64:
-		c1 = uint64(int64(s1))
-		c2 = uint64(int64(s2))
+		c1 = uint64(int64(seed1))
+		c2 = uint64(int64(seed2))
 	case uint, uint8, uint16, uint32, uint64:
-		c1 = uint64(s1)
-		c2 = uint64(s2)
+		c1 = uint64(seed1)
+		c2 = uint64(seed2)
 	case float32, float64:
-		c1 = uint64(float64(s1) * 1e9)
-		c2 = uint64(float64(s2) * 1e9)
+		c1 = uint64(float64(seed1) * 1e9)
+		c2 = uint64(float64(seed2) * 1e9)
 	}
 
 	var out = hashSeed(hashSeed(uint64(2654435769), c1), c2)
@@ -59,24 +62,27 @@ func CombineSeeds[T number.Number](s1, s2 T) T {
 	}
 	return zero
 }
-func Range[T number.Number](a, b T, seed float32) T {
-	switch any(a).(type) {
+
+func Range[T number.Number](min, max T, seed float32) T {
+	switch any(min).(type) {
 	case int, int8, int16, int32, int64:
-		return T(rangeInt(int64(a), int64(b), seed))
+		return T(rangeInt(int64(min), int64(max), seed))
 	case uint, uint8, uint16, uint32, uint64:
-		return T(rangeUint(uint64(a), uint64(b), seed))
+		return T(rangeUint(uint64(min), uint64(max), seed))
 	case float32, float64:
-		return T(rangeFloat(float64(a), float64(b), seed))
+		return T(rangeFloat(float64(min), float64(max), seed))
 	}
 	var zero T
 	return zero
 }
+
 func HasChance(percent, seed float32) bool {
 	if percent <= 0 {
 		return false
 	}
 	return Range(float32(0), 100, seed) <= min(100, percent)
 }
+
 func Shuffle[T any](items []T, seed float32) []T {
 	for i := len(items) - 1; i > 0; i-- {
 		var j = int(Range(0, i, seed))
@@ -84,6 +90,7 @@ func Shuffle[T any](items []T, seed float32) []T {
 	}
 	return items
 }
+
 func PickFrom[T any](items []T, seed float32) T {
 	if len(items) == 0 {
 		var zero T
@@ -102,12 +109,13 @@ func hashSeed(seed, value uint64) uint64 {
 	seed ^= seed >> 16
 	return seed
 }
-func rangeInt(a, b int64, seed float32) int64 {
+
+func rangeInt(val1, val2 int64, seed float32) int64 {
 	var ua, ub uint64
-	ua, ub = uint64(a), uint64(b)
+	ua, ub = uint64(val1), uint64(val2)
 
 	if ua == ub {
-		return a
+		return val1
 	}
 	if ua > ub {
 		ua, ub = ub, ua
@@ -122,6 +130,7 @@ func rangeInt(a, b int64, seed float32) int64 {
 	var result = ua + (s*diff)/2147483647
 	return int64(result)
 }
+
 func rangeUint(ua, ub uint64, seed float32) uint64 {
 	if ua == ub {
 		return ua
@@ -139,6 +148,7 @@ func rangeUint(ua, ub uint64, seed float32) uint64 {
 	var result = ua + (s*diff)/2147483647
 	return result
 }
+
 func rangeFloat(fa, fb float64, seed float32) float64 {
 	if fa == fb {
 		return fa
@@ -157,7 +167,3 @@ func rangeFloat(fa, fb float64, seed float32) float64 {
 	var r = fa + (fb-fa)*normalized
 	return r
 }
-
-// private =================================================================
-
-var seedCounter uint64

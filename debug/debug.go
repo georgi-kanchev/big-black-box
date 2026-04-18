@@ -1,6 +1,7 @@
 package debug
 
 import (
+	"big-black-box/utility/text"
 	"bufio"
 	"bytes"
 	"fmt"
@@ -64,12 +65,11 @@ func LinesOfCode() string {
 	}
 	sort.Strings(allPaths)
 
-	var out strings.Builder
-	fmt.Fprintf(&out, "%s\n", "Lines of code in:")
+	var t = text.Start().String("Lines of code in:\n")
 
 	var printTree func(path, prefix string, isLast bool)
 	printTree = func(path, prefix string, isLast bool) {
-		connector := "├"
+		var connector = "├"
 		if isLast {
 			connector = "└"
 		}
@@ -77,15 +77,20 @@ func LinesOfCode() string {
 		var name = filepath.Base(path)
 		var displayCount = ""
 		if _, ok := results[path]; ok {
-			displayCount = fmt.Sprintf("%d", dirTotals[path])
+			displayCount = strconv.Itoa(dirTotals[path])
 		} else {
-			displayCount = fmt.Sprintf("[%d]", dirTotals[path])
+			displayCount = "[" + strconv.Itoa(dirTotals[path]) + "]"
 		}
 
 		if name == "." {
-			fmt.Fprintf(&out, "[%s] %s\n", displayCount, directory)
+			t.String("[").String(displayCount).String("] ").String(directory).String("\n")
 		} else {
-			fmt.Fprintf(&out, "%6s %s%s%s\n", displayCount, prefix, connector, name)
+			// Basic padding for displayCount
+			var padding = ""
+			for i := 0; i < 6-len(displayCount); i++ {
+				padding += " "
+			}
+			t.String(padding).String(displayCount).String(" ").String(prefix).String(connector).String(name).String("\n")
 		}
 
 		var children []string
@@ -114,14 +119,13 @@ func LinesOfCode() string {
 		}
 	}
 	sort.Strings(topLevel)
-	for i, t := range topLevel {
-		printTree(t, "", i == len(topLevel)-1)
+	for i, tl := range topLevel {
+		printTree(tl, "", i == len(topLevel)-1)
 	}
 
-	return out.String()
+	return t.End()
 }
 func Dependencies() string {
-	var out strings.Builder
 	var cmd = exec.Command("go", "list", "-f", "{{.ImportPath}} -> {{.Imports}}", "./...")
 	var cmdOut bytes.Buffer
 	cmd.Stdout = &cmdOut
@@ -146,19 +150,20 @@ func Dependencies() string {
 	}
 	sort.Strings(pkgs)
 
+	var t = text.Start()
 	for _, pkg := range pkgs {
 		var imports = deps[pkg]
-		fmt.Fprintf(&out, "%s\n", pkg)
+		t.String(pkg).String("\n")
 		sort.Strings(imports)
 		for _, imp := range imports {
 			imp = strings.ReplaceAll(imp, "[", "")
 			imp = strings.ReplaceAll(imp, "]", "")
-			fmt.Fprintf(&out, "\t%s\n", imp)
+			t.String("\t").String(imp).String("\n")
 		}
-		fmt.Fprintln(&out)
+		t.String("\n")
 	}
 
-	return out.String()
+	return t.End()
 }
 func MemoryUsage() string {
 	if ebiten.Tick()%20 != 0 {
@@ -302,13 +307,13 @@ func ProfileCPU(seconds float32) {
 
 		// Generate SVG via `go tool pprof`
 		var cmd = exec.Command("go", "tool", "pprof", "-svg", profileFile)
-		out, err := cmd.CombinedOutput() // Captures both Stdout and Stderr
-		if err != nil {
-			log.Printf("failed to generate svg: %v. Output: %s", err, string(out))
+		var out, err2 = cmd.CombinedOutput() // Captures both Stdout and Stderr
+		if err2 != nil {
+			log.Printf("failed to generate svg: %v. Output: %s", err2, string(out))
 			return
 		}
-		if err := os.WriteFile(svgFile, out, 0644); err != nil {
-			log.Println("failed to save svg:", err)
+		if err2 := os.WriteFile(svgFile, out, 0644); err2 != nil {
+			log.Println("failed to save svg:", err2)
 			return
 		}
 

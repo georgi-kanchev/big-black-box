@@ -1,8 +1,8 @@
 package text
 
 import (
+	"big-black-box/internal"
 	"big-black-box/utility/number"
-	"strings"
 	"unicode"
 )
 
@@ -40,7 +40,7 @@ func Calculate(mathExpression string, vars func(string) float32) float32 {
 				if i >= len(mathExpression) {
 					return number.NaN()
 				}
-				val := calcGetNumber(mathExpression, &i)
+				var val = calcGetNumber(mathExpression, &i)
 				if c == '-' {
 					val = -val
 				}
@@ -99,29 +99,37 @@ func repeatPad(padStr string, totalRunes int) string {
 	if padStr == "" {
 		return ""
 	}
-	var builder strings.Builder
+	internal.BuilderPush()
 	var padRunes = []rune(padStr)
-	for builder.Len() < totalRunes {
+	var count = 0
+	for count < totalRunes {
 		for _, r := range padRunes {
-			builder.WriteRune(r)
-			if Length(builder.String()) >= totalRunes {
-				return truncateToRunes(builder.String(), totalRunes)
+			internal.BuilderWriteRune(r)
+			count++
+			if count >= totalRunes {
+				var res = internal.BuilderResult()
+				internal.BuilderPop()
+				return truncateToRunes(res, totalRunes)
 			}
 		}
 	}
-	return truncateToRunes(builder.String(), totalRunes)
+	var res = internal.BuilderResult()
+	internal.BuilderPop()
+	return truncateToRunes(res, totalRunes)
 }
 func truncateToRunes(s string, maxRunes int) string {
-	var builder strings.Builder
+	internal.BuilderPush()
 	var count = 0
 	for _, r := range s {
 		if count >= maxRunes {
 			break
 		}
-		builder.WriteRune(r)
+		internal.BuilderWriteRune(r)
 		count++
 	}
-	return builder.String()
+	var res = internal.BuilderResult()
+	internal.BuilderPop()
+	return res
 }
 func isSeparator(r rune) bool {
 	return unicode.IsSpace(r) || r == '_' || r == '-' || r == '/' || r == '.'

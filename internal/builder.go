@@ -19,18 +19,18 @@ func BuilderPop() {
 }
 
 // BuilderWriteString writes a string to the current builder level.
-func BuilderWriteString(s string) {
-	builders[builderDepth-1].WriteString(s)
+func BuilderWriteString(value string) {
+	builders[builderDepth-1].WriteString(value)
 }
 
 // BuilderWriteByte writes a byte to the current builder level.
-func BuilderWriteByte(b byte) {
-	builders[builderDepth-1].WriteByte(b)
+func BuilderWriteByte(value byte) {
+	builders[builderDepth-1].WriteByte(value)
 }
 
 // BuilderWriteRune writes a rune to the current builder level.
-func BuilderWriteRune(r rune) {
-	builders[builderDepth-1].WriteRune(r)
+func BuilderWriteRune(value rune) {
+	builders[builderDepth-1].WriteRune(value)
 }
 
 // BuilderResult returns the accumulated string from the current builder level.

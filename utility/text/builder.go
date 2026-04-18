@@ -16,26 +16,26 @@ func Start() Text {
 }
 
 // String appends a string to the text.
-func (t Text) String(v string) Text {
-	internal.BuilderWriteString(v)
+func (t Text) String(value string) Text {
+	internal.BuilderWriteString(value)
 	return t
 }
 
 // Int appends an integer to the text.
-func (t Text) Int(v int) Text {
-	internal.BuilderWriteString(strconv.Itoa(v))
+func (t Text) Int(value int) Text {
+	internal.BuilderWriteString(strconv.Itoa(value))
 	return t
 }
 
 // Float appends a float32 to the text.
-func (t Text) Float(v float32) Text {
-	internal.BuilderWriteString(strconv.FormatFloat(float64(v), 'f', -1, 32))
+func (t Text) Float(value float32) Text {
+	internal.BuilderWriteString(strconv.FormatFloat(float64(value), 'f', -1, 32))
 	return t
 }
 
 // Bool appends a boolean to the text.
-func (t Text) Bool(v bool) Text {
-	if v {
+func (t Text) Bool(value bool) Text {
+	if value {
 		internal.BuilderWriteString("true")
 	} else {
 		internal.BuilderWriteString("false")
@@ -44,8 +44,8 @@ func (t Text) Bool(v bool) Text {
 }
 
 // Rune appends a rune to the text.
-func (t Text) Rune(v rune) Text {
-	internal.BuilderWriteRune(v)
+func (t Text) Rune(value rune) Text {
+	internal.BuilderWriteRune(value)
 	return t
 }
 

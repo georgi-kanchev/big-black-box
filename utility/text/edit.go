@@ -1,6 +1,7 @@
 package text
 
 import (
+	"big-black-box/internal"
 	"big-black-box/utility/number"
 	"strings"
 )
@@ -88,7 +89,7 @@ func Before(text, part string) string {
 
 // Returns the text after the part. If the part is not found, returns the original text.
 func After(text, part string) string {
-	pos := strings.Index(text, part)
+	var pos = strings.Index(text, part)
 	if pos == -1 {
 		return text
 	}
@@ -98,14 +99,14 @@ func After(text, part string) string {
 // Returns the text between the first part and the second part. If one of the parts is not found,
 // returns the original text.
 func Between(text, firstPart, secondPart string) string {
-	sPos := strings.Index(text, firstPart)
+	var sPos = strings.Index(text, firstPart)
 	if sPos == -1 {
 		return text
 	}
 
 	// Start searching for the endAnchor AFTER the startAnchor
-	remaining := text[sPos+len(firstPart):]
-	ePos := strings.Index(remaining, secondPart)
+	var remaining = text[sPos+len(firstPart):]
+	var ePos = strings.Index(remaining, secondPart)
 	if ePos == -1 {
 		return text
 	}
@@ -127,18 +128,20 @@ func Wrap(text string, lineLength int) string {
 		return text
 	}
 
-	var sb strings.Builder
+	internal.BuilderPush()
 	var runes = []rune(text)
 
 	for i, r := range runes {
-		sb.WriteRune(r)
+		internal.BuilderWriteRune(r)
 		var reachedEnd = (i+1)%lineLength == 0
 		var notLastChar = i+1 < len(runes)
 		if reachedEnd && notLastChar {
-			sb.WriteByte('\n')
+			internal.BuilderWriteByte('\n')
 		}
 	}
-	return sb.String()
+	var res = internal.BuilderResult()
+	internal.BuilderPop()
+	return res
 }
 
 // Breaks the text into lines with a maximum length but only breaks at whitespace to keep words intact.
@@ -152,27 +155,29 @@ func WrapWords(text string, lineLength int) string {
 		return ""
 	}
 
-	var sb strings.Builder
+	internal.BuilderPush()
 	var currentLineLength = 0
 
 	for i, word := range words {
 		var wordLen = len([]rune(word))
 		if currentLineLength+wordLen > lineLength && currentLineLength > 0 { // longer than line length
-			sb.WriteByte('\n')
+			internal.BuilderWriteByte('\n')
 			currentLineLength = 0
 		}
 		if currentLineLength > 0 {
-			sb.WriteByte(' ') // add a space if it's not the start of a new line
+			internal.BuilderWriteByte(' ') // add a space if it's not the start of a new line
 			currentLineLength++
 		}
 
-		sb.WriteString(word)
+		internal.BuilderWriteString(word)
 		currentLineLength += wordLen
 
 		if currentLineLength >= lineLength && i < len(words)-1 { // still longer than line length
-			sb.WriteByte('\n') // the next word MUST start on a new line
+			internal.BuilderWriteByte('\n') // the next word MUST start on a new line
 			currentLineLength = 0
 		}
 	}
-	return sb.String()
+	var res = internal.BuilderResult()
+	internal.BuilderPop()
+	return res
 }
