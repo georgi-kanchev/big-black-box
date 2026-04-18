@@ -1,6 +1,9 @@
 package internal
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 // Global stack of builders to allow for nested string building without
 // mid-operation interference. This is throwaway state.
@@ -16,6 +19,17 @@ func BuilderPush() {
 // BuilderPop ends the current building operation and returns to the previous level.
 func BuilderPop() {
 	builderDepth--
+}
+
+func BuilderWriteInt(i int64) {
+	var buf [20]byte
+	var b = strconv.AppendInt(buf[:0], i, 10)
+	builders[builderDepth-1].Write(b)
+}
+func BuilderWriteFloat(f float64, prec int) {
+	var buf [32]byte
+	var b = strconv.AppendFloat(buf[:0], f, 'f', prec, 64)
+	builders[builderDepth-1].Write(b)
 }
 
 // BuilderWriteString writes a string to the current builder level.

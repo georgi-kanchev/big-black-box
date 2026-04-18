@@ -1,58 +1,103 @@
 package text
 
 import (
+	"big-black-box/internal"
 	"big-black-box/utility/number"
 	b64 "encoding/base64"
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
 )
 
 func ToNumber[T number.Number](text string) T {
-	var zero T
-
-	switch any(zero).(type) {
-	case float32:
-		var result, err = strconv.ParseFloat(text, 32)
-		if err != nil {
-			return T(number.NaN())
+	var res T
+	switch p := any(&res).(type) {
+	case *float32:
+		if f, err := strconv.ParseFloat(text, 32); err == nil {
+			*p = float32(f)
+		} else {
+			*p = float32(math.NaN())
 		}
-		return T(result)
-	case float64:
-		var result, err = strconv.ParseFloat(text, 64)
-		if err != nil {
-			return T(math.NaN())
+	case *float64:
+		if f, err := strconv.ParseFloat(text, 64); err == nil {
+			*p = f
+		} else {
+			*p = math.NaN()
 		}
-		return T(result)
-	case int, int8, int16, int32, int64:
-		result, err := strconv.ParseInt(text, 10, 64)
-		if err != nil {
-			return zero
+	case *int:
+		if i, err := strconv.ParseInt(text, 10, 0); err == nil {
+			*p = int(i)
 		}
-		return T(result)
-	case uint, uint8, uint16, uint32, uint64:
-		result, err := strconv.ParseUint(text, 10, 64)
-		if err != nil {
-			return zero
+	case *int64:
+		if i, err := strconv.ParseInt(text, 10, 64); err == nil {
+			*p = i
 		}
-		return T(result)
-
-	default:
-		return zero
+	case *int32:
+		if i, err := strconv.ParseInt(text, 10, 32); err == nil {
+			*p = int32(i)
+		}
+	case *int16:
+		if i, err := strconv.ParseInt(text, 10, 16); err == nil {
+			*p = int16(i)
+		}
+	case *int8:
+		if i, err := strconv.ParseInt(text, 10, 8); err == nil {
+			*p = int8(i)
+		}
+	case *uint:
+		if u, err := strconv.ParseUint(text, 10, 0); err == nil {
+			*p = uint(u)
+		}
+	case *uint64:
+		if u, err := strconv.ParseUint(text, 10, 64); err == nil {
+			*p = u
+		}
+	case *uint32:
+		if u, err := strconv.ParseUint(text, 10, 32); err == nil {
+			*p = uint32(u)
+		}
+	case *uint16:
+		if u, err := strconv.ParseUint(text, 10, 16); err == nil {
+			*p = uint16(u)
+		}
+	case *uint8:
+		if u, err := strconv.ParseUint(text, 10, 8); err == nil {
+			*p = uint8(u)
+		}
 	}
+	return res
 }
 func FormatByteSize(byteSize int) string {
 	const unit = 1024
+
+	internal.BuilderPush()
+	defer internal.BuilderPop()
+
 	if byteSize < unit {
-		return fmt.Sprintf("%d B", byteSize)
+		// strconv.AppendInt can write to a byte slice,
+		// but since we need to use your BuilderWriteString:
+		internal.BuilderWriteInt(int64(byteSize))
+		internal.BuilderWriteString(" B")
+		return internal.BuilderResult()
 	}
-	var div, exp = int(unit), 0
-	for n := byteSize / unit; n >= unit; n /= unit {
+
+	const units = "KMGTPE"
+	var div, exp = int64(unit), 0
+	for n := int64(byteSize) / unit; n >= unit; n /= unit {
 		div *= unit
 		exp++
 	}
-	return fmt.Sprintf("%.3f %cB", float32(byteSize)/float32(div), "KMGTPE"[exp])
+
+	var val = float64(byteSize) / float64(div)
+
+	// Formatting the float without fmt.Sprintf
+	// We use strconv.FormatFloat to get a string then write it to the builder
+	internal.BuilderWriteFloat(val, 3)
+	internal.BuilderWriteByte(' ')
+	internal.BuilderWriteByte(units[exp])
+	internal.BuilderWriteByte('B')
+
+	return internal.BuilderResult()
 }
 
 func ToBase64(text string) string {
@@ -66,12 +111,23 @@ func FromBase64(base64 string) string {
 	return string(decodedBytes)
 }
 
-func Split(text, divider string) []string {
-	if text == "" {
-		return nil
+func Token(text, divider string, index int) string {
+	if index < 0 {
+		return ""
 	}
-	return strings.Split(text, divider)
-}
-func SplitLines(text string) []string {
-	return Split(text, "\n")
+
+	var start = 0
+	for i := 0; i < index; i++ {
+		var pos = strings.Index(text[start:], divider)
+		if pos == -1 {
+			return "" // Index out of bounds
+		}
+		start += pos + len(divider)
+	}
+
+	var end = strings.Index(text[start:], divider)
+	if end == -1 {
+		return text[start:] // Last token in string
+	}
+	return text[start : start+end]
 }

@@ -30,13 +30,13 @@ func PadRight(text string, length int, pad string) string {
 	}
 	return text + repeatPad(pad, padding)
 }
-func PadZeros(number float32, amountOfZeros int) string {
-	if amountOfZeros == 0 {
+func PadZeros(number float32, count int) string {
+	if count == 0 {
 		return Start().Float(number).End()
 	}
 
-	if amountOfZeros < 0 {
-		var width = -amountOfZeros
+	if count < 0 {
+		var width = -count
 		var s = strconv.Itoa(int(number))
 		for Length(s) < width {
 			s = "0" + s
@@ -44,7 +44,7 @@ func PadZeros(number float32, amountOfZeros int) string {
 		return s
 	}
 
-	return strconv.FormatFloat(float64(number), 'f', amountOfZeros, 32)
+	return strconv.FormatFloat(float64(number), 'f', count, 32)
 }
 
 func Trim(text string) string {

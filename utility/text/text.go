@@ -5,7 +5,6 @@ package text
 
 import (
 	"big-black-box/internal"
-	"strconv"
 )
 
 // Text is a primitive-based alias that allows method chaining for string construction.
@@ -26,13 +25,13 @@ func (t Text) String(value string) Text {
 
 // Int appends an integer to the text.
 func (t Text) Int(value int) Text {
-	internal.BuilderWriteString(strconv.Itoa(value))
+	internal.BuilderWriteInt(int64(value))
 	return t
 }
 
 // Float appends a float32 to the text.
 func (t Text) Float(value float32) Text {
-	internal.BuilderWriteString(strconv.FormatFloat(float64(value), 'f', -1, 32))
+	internal.BuilderWriteFloat(float64(value), -1)
 	return t
 }
 

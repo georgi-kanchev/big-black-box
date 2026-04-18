@@ -6,32 +6,32 @@ import (
 	"unicode"
 )
 
-var calcValues = make([]float32, 0, 8)
-var calcOperators = make([]rune, 0, 8)
+var values = make([]float32, 0, 8)
+var operators = make([]rune, 0, 8)
 
-func Calculate(mathExpression string, vars func(string) float32) float32 {
+func Evaluate(mathExpression string, variables func(string) float32) float32 {
 	mathExpression = Remove(mathExpression, " ")
-	calcValues = calcValues[:0]
-	calcOperators = calcOperators[:0]
+	values = values[:0]
+	operators = operators[:0]
 	var bracketCountOpen, bracketCountClose int
 
 	for i := 0; i < len(mathExpression); i++ {
 		var c = rune(mathExpression[i])
 
 		if unicode.IsDigit(c) || c == '.' {
-			calcValues = append(calcValues, calcGetNumber(mathExpression, &i))
+			values = append(values, calcGetNumber(mathExpression, &i))
 		} else if c == '(' {
-			calcOperators = append(calcOperators, c)
+			operators = append(operators, c)
 			bracketCountOpen++
 		} else if c == ')' {
 			bracketCountClose++
-			for len(calcOperators) > 0 && calcOperators[len(calcOperators)-1] != '(' {
+			for len(operators) > 0 && operators[len(operators)-1] != '(' {
 				if calcProcess() {
 					return number.NaN()
 				}
 			}
-			if len(calcOperators) > 0 {
-				calcOperators = calcOperators[:len(calcOperators)-1]
+			if len(operators) > 0 {
+				operators = operators[:len(operators)-1]
 			}
 		} else if calcIsOperator(c) {
 			// Check for unary minus or plus
@@ -44,15 +44,15 @@ func Calculate(mathExpression string, vars func(string) float32) float32 {
 				if c == '-' {
 					val = -val
 				}
-				calcValues = append(calcValues, val)
+				values = append(values, val)
 			} else {
 				// Normal binary operator
-				for len(calcOperators) > 0 && calcPriority(calcOperators[len(calcOperators)-1]) >= calcPriority(c) {
+				for len(operators) > 0 && calcPriority(operators[len(operators)-1]) >= calcPriority(c) {
 					if calcProcess() {
 						return number.NaN()
 					}
 				}
-				calcOperators = append(calcOperators, c)
+				operators = append(operators, c)
 			}
 		} else if unicode.IsLetter(c) {
 			var start = i
@@ -61,14 +61,14 @@ func Calculate(mathExpression string, vars func(string) float32) float32 {
 			}
 			var name = mathExpression[start:i]
 			i--
-			if vars == nil {
+			if variables == nil {
 				return number.NaN()
 			}
-			var v = vars(name)
+			var v = variables(name)
 			if number.IsNaN(v) {
 				return number.NaN()
 			}
-			calcValues = append(calcValues, v)
+			values = append(values, v)
 		}
 
 		if bracketCountClose > bracketCountOpen {
@@ -80,16 +80,16 @@ func Calculate(mathExpression string, vars func(string) float32) float32 {
 		return number.NaN()
 	}
 
-	for len(calcOperators) > 0 {
+	for len(operators) > 0 {
 		if calcProcess() {
 			return number.NaN()
 		}
 	}
 
-	if len(calcValues) == 0 {
+	if len(values) == 0 {
 		return number.NaN()
 	}
-	return calcValues[len(calcValues)-1]
+	return values[len(values)-1]
 }
 
 //=================================================================
@@ -172,16 +172,16 @@ func calcApplyOp(val1, val2 float32, op rune) float32 {
 	return number.NaN()
 }
 func calcProcess() bool {
-	if len(calcValues) < 2 || len(calcOperators) < 1 {
+	if len(values) < 2 || len(operators) < 1 {
 		return true
 	}
-	var val2 = calcValues[len(calcValues)-1]
-	calcValues = calcValues[:len(calcValues)-1]
-	var val1 = calcValues[len(calcValues)-1]
-	calcValues = calcValues[:len(calcValues)-1]
-	var op = calcOperators[len(calcOperators)-1]
-	calcOperators = calcOperators[:len(calcOperators)-1]
-	calcValues = append(calcValues, calcApplyOp(val1, val2, op))
+	var val2 = values[len(values)-1]
+	values = values[:len(values)-1]
+	var val1 = values[len(values)-1]
+	values = values[:len(values)-1]
+	var op = operators[len(operators)-1]
+	operators = operators[:len(operators)-1]
+	values = append(values, calcApplyOp(val1, val2, op))
 	return false
 }
 func calcGetNumber(expr string, i *int) float32 {

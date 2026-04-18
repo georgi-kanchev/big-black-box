@@ -12,34 +12,11 @@ func Length(text string) int {
 func IndexOf(text, part string) int {
 	return strings.Index(text, part)
 }
-func ContainsAll(text string, parts ...string) bool {
-	for _, part := range parts {
-		if !strings.Contains(text, part) {
-			return false
-		}
-	}
-	return true
-}
-func ContainsOneOf(text string, parts ...string) bool {
-	for _, part := range parts {
-		if strings.Contains(text, part) {
-			return true
-		}
-	}
-	return false
+func Contains(text string, part string) bool {
+	return strings.Contains(text, part)
 }
 func CountOccurrences(text, part string) int {
 	return strings.Count(text, part)
-}
-
-// Same as IsEmpty(...)
-func IsBlank(text string) bool {
-	return Trim(text) == ""
-}
-
-// Same as IsBlank(...)
-func IsEmpty(text string) bool {
-	return IsBlank(text)
 }
 
 func IsAllLetters(text string) bool {
