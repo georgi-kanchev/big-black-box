@@ -196,6 +196,24 @@ func (s Shape) String() string {
 	return ""
 }
 
+//=================================================================
+
+func (s Shape) Contains(shape Shape) bool {
+	if s.IsPoint() {
+		return s.pointContains(shape)
+	}
+	if s.IsLine() {
+		return s.lineContains(shape)
+	}
+	if s.IsRectangle() {
+		return s.rectangleContains(shape)
+	}
+	if s.IsCone() {
+		return s.coneContains(shape)
+	}
+	return false
+}
+
 // private ========================================================
 
 func rrPack(angle, roundness float32) float32 {
