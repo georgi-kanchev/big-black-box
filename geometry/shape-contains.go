@@ -21,6 +21,9 @@ func (s Shape) Contains(shape Shape) bool {
 	if s.IsCircle() {
 		return s.circleContains(shape)
 	}
+	if s.IsRectangle() {
+		return s.rectangleContains(shape)
+	}
 
 	return false
 }
@@ -255,6 +258,57 @@ func (s Shape) circleContains(shape Shape) bool {
 		var d2x, d2y = e2x - cx, e2y - cy
 		return number.SquareRoot(d1x*d1x+d1y*d1y)+capRadius <= r &&
 			number.SquareRoot(d2x*d2x+d2y*d2y)+capRadius <= r
+	}
+	return false
+}
+func (s Shape) rectangleContains(shape Shape) bool {
+	var rdy, rdx = internal.SinCos(s.Angle())
+	var rx, ry = s.Position()
+	var w, h = s.Size()
+	var sx, sy = shape.Position()
+	var vx, vy = sx - rx, sy - ry
+	var lx = vx*rdx + vy*rdy // shape center in rectangle local frame
+	var ly = -vx*rdy + vy*rdx
+	if shape.IsPoint() {
+		return number.Absolute(lx) <= w/2 && number.Absolute(ly) <= h/2
+	}
+	if shape.IsLineSegment() {
+		var ex, ey = shape.Point2()
+		return s.rectangleContains(Point(sx, sy)) && s.rectangleContains(Point(ex, ey))
+	}
+	if shape.IsCircle() {
+		var r2, _ = shape.Size()
+		return number.Absolute(lx)+r2 <= w/2 && number.Absolute(ly)+r2 <= h/2
+	}
+	if shape.IsRectangle() {
+		var w2, h2 = shape.Size()
+		var edy, edx = internal.SinCos(shape.Angle())
+		var cp = edx*rdx + edy*rdy  // cos of angle between rectangles
+		var sp = -edx*rdy + edy*rdx // sin of angle between rectangles
+		return number.Absolute(lx)+w2/2*number.Absolute(cp)+h2/2*number.Absolute(sp) <= w/2 &&
+			number.Absolute(ly)+w2/2*number.Absolute(sp)+h2/2*number.Absolute(cp) <= h/2
+	}
+	if shape.IsEllipse() {
+		var a, b = shape.Size()
+		a, b = a/2, b/2
+		var edy, edx = internal.SinCos(shape.Angle())
+		var cp = edx*rdx + edy*rdy                                  // cos of angle between ellipse and rectangle
+		var sp = -edx*rdy + edy*rdx                                 // sin of angle between ellipse and rectangle
+		var extX = number.SquareRoot((a*cp)*(a*cp) + (b*sp)*(b*sp)) // ellipse reach along rectangle's x-axis
+		var extY = number.SquareRoot((a*sp)*(a*sp) + (b*cp)*(b*cp)) // ellipse reach along rectangle's y-axis
+		return number.Absolute(lx)+extX <= w/2 && number.Absolute(ly)+extY <= h/2
+	}
+	if shape.IsCapsule() {
+		var w2, h2 = shape.Size()
+		var capRadius = h2 / 2
+		var halfLen = number.Limit(w2/2-h2/2, float32(0), w2/2)
+		var cdy, cdx = internal.SinCos(shape.Angle())
+		var capDirX = cdx*rdx + cdy*rdy // capsule axis direction in rectangle local frame
+		var capDirY = -cdx*rdy + cdy*rdx
+		var c1x, c1y = lx + halfLen*capDirX, ly + halfLen*capDirY // cap centers in local frame
+		var c2x, c2y = lx - halfLen*capDirX, ly - halfLen*capDirY
+		return number.Absolute(c1x)+capRadius <= w/2 && number.Absolute(c1y)+capRadius <= h/2 &&
+			number.Absolute(c2x)+capRadius <= w/2 && number.Absolute(c2y)+capRadius <= h/2
 	}
 	return false
 }
