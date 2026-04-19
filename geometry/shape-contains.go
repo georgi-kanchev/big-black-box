@@ -5,31 +5,6 @@ import (
 	"big-black-box/utility/number"
 )
 
-func (s Shape) Contains(shape Shape) bool {
-	if s.IsPoint() {
-		return s.pointContains(shape)
-	}
-	if s.IsLineSegment() {
-		return s.lineSegmentContains(shape)
-	}
-	if s.IsInfiniteRay() {
-		return s.infiniteRayContains(shape)
-	}
-	if s.IsInfinitePlane() {
-		return s.infinitePlaneContains(shape)
-	}
-	if s.IsCircle() {
-		return s.circleContains(shape)
-	}
-	if s.IsRectangle() {
-		return s.rectangleContains(shape)
-	}
-
-	return false
-}
-
-// private ========================================================
-
 func (s Shape) pointContains(shape Shape) bool {
 	var x, y = s.Position()
 	var sx, sy = shape.Position()
@@ -311,4 +286,205 @@ func (s Shape) rectangleContains(shape Shape) bool {
 			number.Absolute(c2x)+capRadius <= w/2 && number.Absolute(c2y)+capRadius <= h/2
 	}
 	return false
+}
+func (s Shape) ellipseContains(shape Shape) bool {
+	var edy, edx = internal.SinCos(s.Angle())
+	var ox, oy = s.Position()
+	var a, b = s.Size()
+	a, b = a/2, b/2
+	var sx, sy = shape.Position()
+	var vx, vy = sx - ox, sy - oy
+	var lx = vx*edx + vy*edy // shape center in ellipse local frame
+	var ly = -vx*edy + vy*edx
+	if shape.IsPoint() {
+		var nx, ny = lx / a, ly / b
+		return nx*nx+ny*ny <= 1
+	}
+	if shape.IsLineSegment() {
+		var p2x, p2y = shape.Point2()
+		return s.ellipseContains(Point(sx, sy)) && s.ellipseContains(Point(p2x, p2y))
+	}
+	if shape.IsCircle() {
+		var r, _ = shape.Size()
+		// check if the circle (lx,ly) radius r is inside ellipse (a,b):
+		// maximize ((lx + r·cos t)/a)² + ((ly + r·sin t)/b)² in normalized space
+		return maxNormSqOnCurve(lx/a, ly/b, r/a, 0, 0, r/b) <= 1
+	}
+	if shape.IsRectangle() { // all 4 corners must be inside the ellipse (exact by convexity)
+		var w2, h2 = shape.Size()
+		var rdy2, rdx2 = internal.SinCos(shape.Angle())
+		var cp = rdx2*edx + rdy2*edy  // cos of relative angle
+		var sp = -rdx2*edy + rdy2*edx // sin of relative angle
+		var hw2, hh2 = w2 / 2, h2 / 2
+		for _, c := range [4][2]float32{{hw2, hh2}, {-hw2, hh2}, {hw2, -hh2}, {-hw2, -hh2}} {
+			var cx2 = lx + c[0]*cp - c[1]*sp
+			var cy2 = ly + c[0]*sp + c[1]*cp
+			var nx, ny = cx2 / a, cy2 / b
+			if nx*nx+ny*ny > 1 {
+				return false
+			}
+		}
+		return true
+	}
+	if shape.IsEllipse() {
+		var a2, b2 = shape.Size()
+		a2, b2 = a2/2, b2/2
+		var edy2, edx2 = internal.SinCos(shape.Angle())
+		var cp = edx2*edx + edy2*edy  // cos of relative angle
+		var sp = -edx2*edy + edy2*edx // sin of relative angle
+		// inner ellipse in outer's normalized space traces: (uc + P·cos t + Q·sin t, vc + R·cos t + S·sin t)
+		var P = a2 * cp / a
+		var Q = -b2 * sp / a
+		var R = a2 * sp / b
+		var S = b2 * cp / b
+		return maxNormSqOnCurve(lx/a, ly/b, P, Q, R, S) <= 1
+	}
+	if shape.IsCapsule() { // the capsule is inside the ellipse if both end-cap circles are inside the ellipse
+		var w2, h2 = shape.Size()
+		var capRadius = h2 / 2
+		var halfLen = number.Limit(w2/2-h2/2, float32(0), w2/2)
+		var cdy2, cdx2 = internal.SinCos(shape.Angle())
+		var capDirX = cdx2*edx + cdy2*edy // capsule axis direction in ellipse local frame
+		var capDirY = -cdx2*edy + cdy2*edx
+		var c1x, c1y = lx + halfLen*capDirX, ly + halfLen*capDirY
+		var c2x, c2y = lx - halfLen*capDirX, ly - halfLen*capDirY
+		return maxNormSqOnCurve(c1x/a, c1y/b, capRadius/a, 0, 0, capRadius/b) <= 1 &&
+			maxNormSqOnCurve(c2x/a, c2y/b, capRadius/a, 0, 0, capRadius/b) <= 1
+	}
+	return false
+}
+func (s Shape) capsuleContains(shape Shape) bool {
+	var cdy, cdx = internal.SinCos(s.Angle())
+	var ox, oy = s.Position()
+	var w, h = s.Size()
+	var capRadius = h / 2
+	var halfLen = number.Limit(w/2-h/2, float32(0), w/2)
+	var sx, sy = shape.Position()
+	var vx, vy = sx - ox, sy - oy
+	var lx = vx*cdx + vy*cdy // shape center in capsule local frame
+	var ly = -vx*cdy + vy*cdx
+	if shape.IsPoint() {
+		var nearestX = number.Limit(lx, -halfLen, halfLen)
+		var dx, dy = lx - nearestX, ly
+		return dx*dx+dy*dy <= capRadius*capRadius
+	}
+	if shape.IsLineSegment() {
+		var p2x, p2y = shape.Point2()
+		return s.capsuleContains(Point(sx, sy)) && s.capsuleContains(Point(p2x, p2y))
+	}
+	if shape.IsCircle() {
+		var r, _ = shape.Size()
+		var nearestX = number.Limit(lx, -halfLen, halfLen)
+		var dx, dy = lx - nearestX, ly
+		return number.SquareRoot(dx*dx+dy*dy)+r <= capRadius
+	}
+	if shape.IsRectangle() { // check all 4 corners (exact by convexity)
+		var w2, h2 = shape.Size()
+		var rdy2, rdx2 = internal.SinCos(shape.Angle())
+		var cp = rdx2*cdx + rdy2*cdy
+		var sp = -rdx2*cdy + rdy2*cdx
+		var hw2, hh2 = w2 / 2, h2 / 2
+		for _, c := range [4][2]float32{{hw2, hh2}, {-hw2, hh2}, {hw2, -hh2}, {-hw2, -hh2}} {
+			var cx2 = lx + c[0]*cp - c[1]*sp
+			var cy2 = ly + c[0]*sp + c[1]*cp
+			var nearestX = number.Limit(cx2, -halfLen, halfLen)
+			var dx, dy = cx2 - nearestX, cy2
+			if dx*dx+dy*dy > capRadius*capRadius {
+				return false
+			}
+		}
+		return true
+	}
+	if shape.IsEllipse() {
+		var a2, b2 = shape.Size() // ellipse boundary in capsule local frame: (lx + A·cos t + B·sin t, ly + C·cos t + D·sin t)
+		a2, b2 = a2/2, b2/2       // maximize dist²(P, segment) = (Px − clamp(Px, −halfLen, halfLen))² + Py²
+		var edy2, edx2 = internal.SinCos(shape.Angle())
+		var cp = edx2*cdx + edy2*cdy
+		var sp = -edx2*cdy + edy2*cdx
+		var A, B, C, D = a2 * cp, -b2 * sp, a2 * sp, b2 * cp
+		const radToDeg = float32(57.295779513)
+		var maxF = float32(0)
+		for _, t0 := range [8]float32{0, 45, 90, 135, 180, 225, 270, 315} {
+			var t = t0
+			for range 10 {
+				var sn, cs = internal.SinCos(t)
+				var Px = lx + A*cs + B*sn
+				var Py = ly + C*cs + D*sn
+				var Pxp = -A*sn + B*cs
+				var Pyp = -C*sn + D*cs
+				var dx, dxp float32
+				if Px > halfLen {
+					dx, dxp = Px-halfLen, Pxp
+				} else if Px < -halfLen {
+					dx, dxp = Px+halfLen, Pxp
+				}
+				var Pxpp = -A*cs - B*sn
+				var Pypp = -C*cs - D*sn
+				var dxpp float32
+				if Px > halfLen || Px < -halfLen {
+					dxpp = Pxpp
+				}
+				var fp = dx*dxp + Py*Pyp
+				var fpp = dxp*dxp + dx*dxpp + Pyp*Pyp + Py*Pypp
+				if number.Absolute(fpp) < 1e-6 {
+					break
+				}
+				t -= fp / fpp * radToDeg
+			}
+			var sn, cs = internal.SinCos(t)
+			var Px = lx + A*cs + B*sn
+			var Py = ly + C*cs + D*sn
+			var nearestX = number.Limit(Px, -halfLen, halfLen)
+			var dx, dy = Px - nearestX, Py
+			maxF = max(maxF, dx*dx+dy*dy)
+		}
+		return maxF <= capRadius*capRadius
+	}
+	if shape.IsCapsule() { // inner capsule ⊆ outer capsule iff both inner cap circles fit inside the outer capsule
+		var w2, h2 = shape.Size()
+		var innerCapRadius = h2 / 2
+		var innerHalfLen = number.Limit(w2/2-h2/2, float32(0), w2/2)
+		var c2dy, c2dx = internal.SinCos(shape.Angle())
+		var capDirX = c2dx*cdx + c2dy*cdy // inner capsule axis in outer local frame
+		var capDirY = -c2dx*cdy + c2dy*cdx
+		var c1x, c1y = lx + innerHalfLen*capDirX, ly + innerHalfLen*capDirY
+		var c2x, c2y = lx - innerHalfLen*capDirX, ly - innerHalfLen*capDirY
+		for _, cap := range [2][2]float32{{c1x, c1y}, {c2x, c2y}} {
+			var nearestX = number.Limit(cap[0], -halfLen, halfLen)
+			var dx, dy = cap[0] - nearestX, cap[1]
+			if number.SquareRoot(dx*dx+dy*dy)+innerCapRadius > capRadius {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
+// maxNormSqOnCurve finds max ||(uc + P·cos t + Q·sin t, vc + R·cos t + S·sin t)||²
+// using Newton's method from 4 starting angles (t in degrees throughout)
+func maxNormSqOnCurve(uc, vc, P, Q, R, S float32) float32 {
+	const radToDeg = float32(57.295779513)
+	var maxF = float32(0)
+	for _, t0 := range [4]float32{0, 90, 180, 270} {
+		var t = t0
+		for range 10 {
+			var sn, cs = internal.SinCos(t)
+			var X = uc + P*cs + Q*sn
+			var Y = vc + R*cs + S*sn
+			var Xp = -P*sn + Q*cs
+			var Yp = -R*sn + S*cs
+			var fp = X*Xp + Y*Yp                                      // ½ · d/dt_rad [X² + Y²]
+			var fpp = Xp*Xp + X*(-P*cs-Q*sn) + Yp*Yp + Y*(-R*cs-S*sn) // ½ · d²/dt_rad² [X² + Y²]
+			if number.Absolute(fpp) < 1e-6 {
+				break
+			}
+			t -= fp / fpp * radToDeg
+		}
+		var sn, cs = internal.SinCos(t)
+		var X = uc + P*cs + Q*sn
+		var Y = vc + R*cs + S*sn
+		maxF = max(maxF, X*X+Y*Y)
+	}
+	return maxF
 }

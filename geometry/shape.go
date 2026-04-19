@@ -62,7 +62,7 @@ func (s Shape) IsRectangle() bool {
 	return s[2] >= 0 && s[3] >= 0 && !number.IsNaN(s[4]) && !number.IsInfinity(s[4])
 }
 func (s Shape) IsEllipse() bool {
-	return s[2] < 0 && s[3] >= 0 && !number.IsInfinity(s[4])
+	return s[2] < 0 && !number.IsInfinity(s[4])
 }
 func (s Shape) IsCapsule() bool {
 	return s[2] >= 0 && s[3] < 0 && !number.IsInfinity(s[4])
@@ -150,4 +150,35 @@ func (s *Shape) SetAngle(angle float32) {
 	if !s.IsPoint() && !s.IsCircle() && !number.IsInfinity(angle) && !number.IsNaN(angle) {
 		s[4] = angle // protect the tags for Points and Circles
 	}
+}
+
+//=================================================================
+
+func (s Shape) Contains(shape Shape) bool {
+	if s.IsPoint() {
+		return s.pointContains(shape)
+	}
+	if s.IsLineSegment() {
+		return s.lineSegmentContains(shape)
+	}
+	if s.IsInfiniteRay() {
+		return s.infiniteRayContains(shape)
+	}
+	if s.IsInfinitePlane() {
+		return s.infinitePlaneContains(shape)
+	}
+	if s.IsCircle() {
+		return s.circleContains(shape)
+	}
+	if s.IsRectangle() {
+		return s.rectangleContains(shape)
+	}
+	if s.IsEllipse() {
+		return s.ellipseContains(shape)
+	}
+	if s.IsCapsule() {
+		return s.capsuleContains(shape)
+	}
+
+	return false
 }
