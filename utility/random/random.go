@@ -92,7 +92,8 @@ func PickFrom[T any](items []T, seed float32) T {
 	return items[int(Range(0, len(items)-1, seed))]
 }
 
-// private =================================================================
+// private ========================================================
+
 var seedCounter uint64
 
 func hashSeed(seed, value uint64) uint64 {

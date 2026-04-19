@@ -42,7 +42,7 @@ func FromHours(hours float32) float32               { return hours * 3600 }
 func FromDays(days float32) float32                 { return days * 86400 }
 func FromWeeks(weeks float32) float32               { return weeks * 604800 }
 
-// private =================================================================
+// private ========================================================
 
 func formatTimeParts(ts time.Duration, divider string, units int, is12Hour, amPm bool) string {
 	internal.BuilderPush()
@@ -105,7 +105,6 @@ func formatTimeParts(ts time.Duration, divider string, units int, is12Hour, amPm
 
 	return internal.BuilderResult()
 }
-
 func writePaddedInt(val int, width int) {
 	var str = strconv.Itoa(val)
 	for i := len(str); i < width; i++ {
@@ -113,7 +112,6 @@ func writePaddedInt(val int, width int) {
 	}
 	internal.BuilderWriteString(str)
 }
-
 func writeSep(counter int, divider string) {
 	if counter > 0 {
 		internal.BuilderWriteString(divider)

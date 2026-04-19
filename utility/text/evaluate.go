@@ -92,8 +92,7 @@ func Evaluate(mathExpression string, variables func(string) float32) float32 {
 	return values[len(values)-1]
 }
 
-//=================================================================
-// private
+// private ========================================================
 
 func repeatPad(padStr string, totalRunes int) string {
 	if padStr == "" {

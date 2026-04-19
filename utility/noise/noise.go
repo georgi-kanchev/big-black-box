@@ -206,7 +206,7 @@ func ValueCubic(x, y, scale float32, seed float32) float32 {
 	return result
 }
 
-// private =================================================================
+// private ========================================================
 
 var gradients = [8][2]float32{
 	{1, 0}, {-1, 0}, {0, 1}, {0, -1},

@@ -110,7 +110,7 @@ func (k Key) IsHeld() bool         { return IsHeld(k) }
 func (k Key) IsJustPressed() bool  { return IsJustPressed(k) }
 func (k Key) IsJustReleased() bool { return IsJustReleased(k) }
 
-// private =================================================================
+// private ========================================================
 
 const keyNone = -1
 

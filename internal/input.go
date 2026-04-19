@@ -15,7 +15,7 @@ var InputBuffer = make([]rune, 0, 16)
 var InputString string
 var AnyKeyJustPressed, AnyKeyJustReleased bool
 
-// private =================================================================
+// private ========================================================
 
 func cacheInput() {
 	if !ebiten.IsFocused() {

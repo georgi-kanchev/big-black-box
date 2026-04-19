@@ -202,7 +202,6 @@ func ValueBiggest[T Number]() T {
 }
 
 //=================================================================
-// float only
 
 func Animate[T Float](value, target, rate T) T {
 	var result T
@@ -288,7 +287,6 @@ func IsNegativeInfinity(number float32) bool {
 }
 
 //=================================================================
-// int only
 
 func Indexes2DToIndex1D[T Integer](x, y, width, height T) T {
 	var result = x*width + y
@@ -312,7 +310,7 @@ func Index1DToIndexes2D[T Integer](index, width, height T) (x, y T) {
 	return x, y
 }
 
-// private =================================================================
+// private ========================================================
 
 var pow10 = [7]float64{1, 10, 100, 1000, 10000, 100000, 1000000}
 
