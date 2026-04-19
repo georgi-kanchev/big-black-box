@@ -18,6 +18,9 @@ func (s Shape) Contains(shape Shape) bool {
 	if s.IsInfinitePlane() {
 		return s.infinitePlaneContains(shape)
 	}
+	if s.IsCircle() {
+		return s.circleContains(shape)
+	}
 
 	return false
 }
@@ -177,6 +180,81 @@ func (s Shape) infinitePlaneContains(shape Shape) bool {
 		var vx, vy = sx - ax, sy - ay
 		var crossProduct = vx*dy - vy*dx
 		return number.Absolute(crossProduct) <= 1e-9
+	}
+	return false
+}
+func (s Shape) circleContains(shape Shape) bool {
+	var cx, cy = s.Position()
+	var r, _ = s.Size()
+	var sx, sy = shape.Position()
+	if shape.IsPoint() {
+		var dx, dy = sx - cx, sy - cy
+		return dx*dx+dy*dy <= r*r
+	}
+	if shape.IsLineSegment() {
+		var ex, ey = shape.Point2()
+		return s.circleContains(Point(sx, sy)) && s.circleContains(Point(ex, ey))
+	}
+	if shape.IsCircle() {
+		var r2, _ = shape.Size()
+		var dx, dy = sx - cx, sy - cy
+		return number.SquareRoot(dx*dx+dy*dy)+r2 <= r
+	}
+	if shape.IsRectangle() {
+		var w, h = shape.Size()
+		var sin, cos = internal.SinCos(shape.Angle())
+		var hw, hh = w / 2, h / 2
+		for _, c := range [4][2]float32{{hw, hh}, {-hw, hh}, {hw, -hh}, {-hw, -hh}} {
+			if !s.circleContains(Point(sx+c[0]*cos-c[1]*sin, sy+c[0]*sin+c[1]*cos)) {
+				return false
+			}
+		}
+		return true
+	}
+	if shape.IsEllipse() {
+		// transform circle center into ellipse's local frame
+		var edy, edx = internal.SinCos(shape.Angle())
+		var vx, vy = sx - cx, sy - cy
+		var u = vx*edx + vy*edy  // circle center in ellipse local frame (along major axis)
+		var v = -vx*edy + vy*edx // circle center in ellipse local frame (along minor axis)
+		var a, b = shape.Size()
+		a, b = a/2, b/2
+		// maximize f(t) = (a·cos t - u)² + (b·sin t - v)² using Newton's method (t in degrees)
+		// f'_rad  = (b²-a²)·sin(2t) + 2au·sin t - 2bv·cos t
+		// f''_rad = 2(b²-a²)·cos(2t) + 2au·cos t + 2bv·sin t
+		// newton step in degrees: Δt = -(f'_rad / f''_rad) · (180/π)
+		const radToDeg = float32(57.295779513)
+		var maxD2 = float32(0)
+		for _, t0 := range [4]float32{0, 90, 180, 270} {
+			var t = t0
+			for range 10 {
+				var sn, cs = internal.SinCos(t)
+				var sn2, cs2 = internal.SinCos(2 * t)
+				var fp = (b*b-a*a)*sn2 + 2*a*u*sn - 2*b*v*cs
+				var fpp = 2*(b*b-a*a)*cs2 + 2*a*u*cs + 2*b*v*sn
+				if number.Absolute(fpp) < 1e-6 {
+					break
+				}
+				t -= fp / fpp * radToDeg
+			}
+			var sn, cs = internal.SinCos(t)
+			var d2 = (a*cs-u)*(a*cs-u) + (b*sn-v)*(b*sn-v)
+			maxD2 = max(maxD2, d2)
+		}
+		return maxD2 <= r*r
+	}
+	if shape.IsCapsule() {
+		// a capsule's farthest point from any external location is on one of the two end-cap circles
+		var w, h = shape.Size()
+		var capRadius = h / 2
+		var halfLen = number.Limit(w/2-h/2, float32(0), w/2)
+		var cdy, cdx = internal.SinCos(shape.Angle())
+		var e1x, e1y = sx + halfLen*cdx, sy + halfLen*cdy
+		var e2x, e2y = sx - halfLen*cdx, sy - halfLen*cdy
+		var d1x, d1y = e1x - cx, e1y - cy
+		var d2x, d2y = e2x - cx, e2y - cy
+		return number.SquareRoot(d1x*d1x+d1y*d1y)+capRadius <= r &&
+			number.SquareRoot(d2x*d2x+d2y*d2y)+capRadius <= r
 	}
 	return false
 }
