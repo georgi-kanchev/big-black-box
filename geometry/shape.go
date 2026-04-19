@@ -9,14 +9,15 @@ import (
 
 // Types of shapes:
 //
-//	[x, y, NaN, NaN, NaN]                        // Point
-//	[x, y, x2, y2, NegInf]                       // Line Segment
-//	[x, y, PosInf, NaN, angle]                   // Infinite Ray
-//	[x, y, NaN, NaN, angle]                	     // Infinite Plane
-//	[centerX, centerY, width, height, angle]     // Rectangle
-//	[centerX, centerY, -width, height, angle]    // Ellipse
-//	[centerX, centerY, width, -height, angle]    // Capsule
-//	[centerX, centerY, radius, radius, PosInf]   // Circle
+//	[x, y, NaN, NaN, NaN]                       // Point
+//	[x, y, x2, y2, NegInf]                      // Line Segment
+//	[x, y, PosInf, NaN, angle]                  // Infinite Ray
+//	[x, y, NaN, NaN, angle]                	    // Infinite Plane
+//	[centerX, centerY, width, height, angle]    // Rectangle
+//	[centerX, centerY, -width, height, angle]   // Ellipse
+//	[centerX, centerY, width, -height, angle]   // Capsule
+//	[centerX, centerY, -radius, -spread, angle] // Cone
+//	[centerX, centerY, radius, radius, PosInf]  // Circle
 type Shape [5]float32
 
 func Point(x, y float32) Shape {
@@ -40,6 +41,9 @@ func Ellipse(centerX, centerY, width, height, angle float32) Shape {
 func Capsule(centerX, centerY, width, height, angle float32) Shape {
 	return [5]float32{centerX, centerY, width, -height, angle}
 }
+func Cone(centerX, centerY, radius, spread, angle float32) Shape {
+	return [5]float32{centerX, centerY, -radius, -spread, angle}
+}
 func Circle(centerX, centerY, radius float32) Shape {
 	return [5]float32{centerX, centerY, radius, radius, number.PositiveInfinity()}
 }
@@ -62,10 +66,13 @@ func (s Shape) IsRectangle() bool {
 	return s[2] >= 0 && s[3] >= 0 && !number.IsNaN(s[4]) && !number.IsInfinity(s[4])
 }
 func (s Shape) IsEllipse() bool {
-	return s[2] < 0 && !number.IsInfinity(s[4])
+	return s[2] < 0 && s[3] >= 0 && !number.IsInfinity(s[4])
 }
 func (s Shape) IsCapsule() bool {
 	return s[2] >= 0 && s[3] < 0 && !number.IsInfinity(s[4])
+}
+func (s Shape) IsCone() bool {
+	return s[2] < 0 && s[3] < 0 && !number.IsInfinity(s[4])
 }
 func (s Shape) IsCircle() bool {
 	return number.IsInfinity(s[4])
@@ -128,12 +135,12 @@ func (s *Shape) SetSize(width, height float32) {
 		return
 	}
 
-	if s.IsEllipse() {
+	if s.IsEllipse() || s.IsCone() {
 		s[2] = -width
 	} else if !s.IsPoint() && !s.IsInfinitePlane() {
 		s[2] = width
 	}
-	if s.IsCapsule() {
+	if s.IsCapsule() || s.IsCone() {
 		s[3] = -height
 	} else if !s.IsPoint() && !s.IsLineSegment() && !s.IsInfiniteRay() && !s.IsInfinitePlane() {
 		s[3] = height
