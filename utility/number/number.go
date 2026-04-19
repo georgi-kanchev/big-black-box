@@ -264,17 +264,27 @@ func RoundDownFraction[T Float](number T, precision int) T {
 	return T(math.Floor(float64(number)*p) / p)
 }
 
-func Infinity() float32 {
+func PositiveInfinity() float32 {
 	return float32(math.Inf(1))
 }
 func NegativeInfinity() float32 {
 	return float32(math.Inf(-1))
 }
+func NaN() float32 {
+	return float32(math.NaN())
+}
+
 func IsNaN(number float32) bool {
 	return number != number
 }
-func NaN() float32 {
-	return float32(math.NaN())
+func IsInfinity(number float32) bool {
+	return number > math.MaxFloat32 || number < -math.MaxFloat32
+}
+func IsPositiveInfinity(number float32) bool {
+	return number > math.MaxFloat32
+}
+func IsNegativeInfinity(number float32) bool {
+	return number < -math.MaxFloat32
 }
 
 //=================================================================

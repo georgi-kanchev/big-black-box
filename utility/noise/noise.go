@@ -86,7 +86,7 @@ func Worley(x, y, scale float32, seed float32) float32 {
 	y *= scale
 
 	var xi, yi = int(number.RoundDown(x)), int(number.RoundDown(y))
-	var minDist = number.Infinity()
+	var minDist = number.PositiveInfinity()
 	var intSeed = floatToIntSeed(seed)
 
 	for dy := int(-1); dy <= 1; dy++ {
@@ -116,7 +116,7 @@ func Voronoi(x, y, scale float32, seed float32) float32 {
 
 	var intSeed = floatToIntSeed(seed)
 	var xi, yi = int(number.RoundDown(x)), int(number.RoundDown(y))
-	var minDist = number.Infinity()
+	var minDist = number.PositiveInfinity()
 	var closestFeature [2]int
 
 	for dy := int(-1); dy <= 1; dy++ {
