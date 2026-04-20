@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"runtime/trace"
 	"sort"
 	"strconv"
 	"strings"
@@ -121,46 +122,6 @@ func LinesOfCode() string {
 	sort.Strings(topLevel)
 	for i, tl := range topLevel {
 		printTree(tl, "", i == len(topLevel)-1)
-	}
-
-	return t.End()
-}
-func Dependencies() string {
-	var cmd = exec.Command("go", "list", "-f", "{{.ImportPath}} -> {{.Imports}}", "./...")
-	var cmdOut bytes.Buffer
-	cmd.Stdout = &cmdOut
-	cmd.Run()
-
-	var lines = strings.Split(strings.TrimSpace(cmdOut.String()), "\n")
-	var deps = make(map[string][]string)
-
-	for _, line := range lines {
-		var parts = strings.Split(line, "->")
-		if len(parts) != 2 {
-			continue
-		}
-		var pkg = strings.TrimSpace(parts[0])
-		var imports = strings.Fields(strings.TrimSpace(parts[1]))
-		deps[pkg] = imports
-	}
-
-	var pkgs []string
-	for k := range deps {
-		pkgs = append(pkgs, k)
-	}
-	sort.Strings(pkgs)
-
-	var t = text.Start()
-	for _, pkg := range pkgs {
-		var imports = deps[pkg]
-		t.String(pkg).String("\n")
-		sort.Strings(imports)
-		for _, imp := range imports {
-			imp = strings.ReplaceAll(imp, "[", "")
-			imp = strings.ReplaceAll(imp, "]", "")
-			t.String("\t").String(imp).String("\n")
-		}
-		t.String("\n")
 	}
 
 	return t.End()
@@ -320,6 +281,39 @@ func ProfileCPU(seconds float32) {
 		log.Println("SVG generated at", svgFile)
 
 		exec.Command("xdg-open", svgFile).Start()
+	}()
+}
+func ProfileTrace(seconds float32) {
+	go func() {
+		var ts = time.Now().Format("2006-01-02_15-04-05")
+		var traceFile = fmt.Sprintf("trace_%s.out", ts)
+		var f, err = os.Create(traceFile)
+		if err != nil {
+			log.Println("could not create trace file:", err)
+			return
+		}
+		defer f.Close()
+
+		// Start tracing
+		if err := trace.Start(f); err != nil {
+			log.Println("could not start trace:", err)
+			return
+		}
+
+		log.Printf("Execution tracing: capturing for %.2f seconds...\n", seconds)
+
+		// Capture for the specified duration
+		var duration = time.Duration(float64(seconds) * float64(time.Second))
+		time.Sleep(duration)
+
+		trace.Stop()
+		log.Println("Tracing stopped. Trace saved at", traceFile)
+
+		log.Println("Opening trace viewer at http://localhost:8082 ...")
+
+		// Launch the trace tool viewer
+		// Note: trace tool requires its own server to parse the binary data
+		exec.Command("go", "tool", "trace", "-http=:8082", traceFile).Start()
 	}()
 }
 
