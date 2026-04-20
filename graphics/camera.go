@@ -4,6 +4,7 @@ import (
 	"big-black-box/internal"
 	"big-black-box/utility/angle"
 	"big-black-box/utility/number"
+	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -23,6 +24,7 @@ func NewCamera() Camera {
 	}
 
 	if slotIndex == -1 {
+		log.Println("Cannot create more than 7 Cameras!")
 		return 0 // invalid
 	}
 	internal.State.Cameras[slotIndex] = internal.Camera{Zoom: 1}

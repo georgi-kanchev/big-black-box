@@ -9,11 +9,7 @@ import (
 )
 
 func Run(gameLoop func()) {
-	internal.GameLoop = gameLoop
-	internal.SinCosCache()
-
-	ebiten.SetWindowSize(1600, 900)
-	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
+	internal.Init(gameLoop)
 
 	window.SetMonitor(0)
 	window.SetTitle("game")

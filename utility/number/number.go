@@ -12,7 +12,6 @@
 package number
 
 import (
-	"big-black-box/internal"
 	"fmt"
 	"math"
 	"strconv"
@@ -221,12 +220,14 @@ func DivisionRemainder[T Float](number, target T) T {
 	return T(math.Mod(float64(number), float64(target)))
 }
 func Sine[T Float](number T) T {
-	var sin, _ = internal.SinCos(float32(number))
-	return T(sin)
+	// var sin, _ = internal.SinCos(float32(number))
+	// return T(sin)
+	return T(math.Sin(float64(number)))
 }
 func Cosine[T Float](number T) T {
-	var _, cos = internal.SinCos(float32(number))
-	return T(cos)
+	// var _, cos = internal.SinCos(float32(number))
+	// return T(cos)
+	return T(math.Cos(float64(number)))
 }
 func Precision[T Float](number T) int {
 	for i := range 9 {

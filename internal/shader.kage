@@ -1,0 +1,44 @@
+package main
+
+var Center    vec2
+var Size      vec2
+var Roundness float
+var Rotation  float 
+var OutlineThickness float
+var OutlineColor vec4
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+    p := position.xy - Center
+    
+    cosR := cos(-Rotation)
+    sinR := sin(-Rotation)
+    p = vec2(p.x * cosR - p.y * sinR, p.x * sinR + p.y * cosR)
+    
+    halfSize := Size * 0.5
+    maxRadius := min(halfSize.x, halfSize.y)
+    currentRadius := Roundness * maxRadius
+    
+    // Calculate the Distance Field
+    q := abs(p) - halfSize + currentRadius
+    d := length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - currentRadius
+    
+    // 1. Calculate the Fill Mask
+    shapeAlpha := 1.0 - smoothstep(-0.7, 0.7, d)
+    
+    // 2. Calculate the Outline Mask
+    // Positive thickness grows inward (d < 0 region), negative grows outward (d > 0 region).
+    innerEdge := max(0.0, OutlineThickness)
+    outerEdge := max(0.0, -OutlineThickness)
+    outlineAlpha := smoothstep(-0.7, 0.7, d+innerEdge) * (1.0 - smoothstep(-0.7, 0.7, d-outerEdge))
+
+    // Premultiply fill: Ebitengine's blend expects premultiplied alpha output.
+    // color from ColorScale is straight alpha, so we must multiply rgb by alpha here.
+    fillA := color.a * shapeAlpha
+    result := vec4(color.rgb * fillA, fillA)
+
+    // Composite outline on top (also premultiplied)
+    outA := OutlineColor.a * outlineAlpha
+    result = result*(1.0-outA) + vec4(OutlineColor.rgb*outA, outA)
+
+    return result
+}
