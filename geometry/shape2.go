@@ -10,14 +10,14 @@ type Shape struct {
 	ar                  float32
 }
 
-func (s Shape) Angle() float32             { var a, _ = unpackAR(s.ar); return a }
-func (s Shape) Roundness() float32         { var _, r = unpackAR(s.ar); return r }
+func (s Shape) Angle() float32                  { var a, _ = unpackAR(s.ar); return a }
+func (s Shape) Roundness() float32              { var _, r = unpackAR(s.ar); return r }
 func (s *Shape) SetAR(angle, roundness float32) { s.ar = packAR(angle, roundness) }
 
 func packAR(angle, roundness float32) float32 {
 	var idx = ((int(angle*10) % 3600) + 3600) % 3600
 	var r = min(int(roundness*4659), 4659)
-	return -float32(r*3600+idx+1)
+	return -float32(r*3600 + idx + 1)
 }
 
 func unpackAR(ar float32) (angle, roundness float32) {
@@ -51,6 +51,55 @@ func (s Shape) DistanceToPoint(x, y float32) float32 {
 func (s Shape) Contains(x, y float32) bool {
 	return s.DistanceToPoint(x, y) <= 0
 }
+
+// ClosestPointOnEdge returns the nearest point on the shape boundary to (x, y).
+func (s Shape) ClosestPointOnEdge(x, y float32) (float32, float32) {
+	var angle, roundness = unpackAR(s.ar)
+	var px = x - s.X
+	var py = y - s.Y
+
+	var rad = float64(-angle) * (math.Pi / 180.0)
+	var cosR = float32(math.Cos(rad))
+	var sinR = float32(math.Sin(rad))
+	var lx = px*cosR - py*sinR
+	var ly = px*sinR + py*cosR
+
+	var hx, hy = s.Width * 0.5, s.Height * 0.5
+	var r = roundness * min(hx, hy)
+	var cx = max(-(hx - r), min(hx-r, lx))
+	var cy = max(-(hy - r), min(hy-r, ly))
+
+	var dx = lx - cx
+	var dy = ly - cy
+	var dist = number.SquareRoot(dx*dx + dy*dy)
+
+	var bx, by float32
+	if dist > 1e-6 {
+		bx = cx + r*dx/dist
+		by = cy + r*dy/dist
+	} else {
+		// inside inner box: push to nearest flat face
+		var dPosX = hx - lx
+		var dNegX = hx + lx
+		var dPosY = hy - ly
+		var dNegY = hy + ly
+		var minD = min(min(dPosX, dNegX), min(dPosY, dNegY))
+		switch minD {
+		case dPosX:
+			bx, by = hx, ly
+		case dNegX:
+			bx, by = -hx, ly
+		case dPosY:
+			bx, by = lx, hy
+		default:
+			bx, by = lx, -hy
+		}
+	}
+
+	return bx*cosR + by*sinR + s.X, -bx*sinR + by*cosR + s.Y
+}
+
+// func (s Shape) Raycast(ox, oy, dirX, dirY float32) (x, y, t float32, hit bool)
 
 // Bounds returns the tight axis-aligned bounding box of the shape.
 func (s Shape) Bounds() (minX, minY, maxX, maxY float32) {
@@ -218,7 +267,6 @@ func support(s Shape, ax0, ax1, cosR, sinR float32) float32 {
 	var dY = number.Absolute(-ax0*sinR + ax1*cosR)
 	return (hx-r)*dX + (hy-r)*dY + r
 }
-
 func nearestInnerBoxPoint(s Shape, px, py, cosR, sinR float32) (float32, float32) {
 	var _, roundness = unpackAR(s.ar)
 	var rx, ry = px - s.X, py - s.Y
@@ -227,8 +275,8 @@ func nearestInnerBoxPoint(s Shape, px, py, cosR, sinR float32) (float32, float32
 
 	var hx, hy = s.Width * 0.5, s.Height * 0.5
 	var r = roundness * min(hx, hy)
-	lx = max(-(hx-r), min(hx-r, lx))
-	ly = max(-(hy-r), min(hy-r, ly))
+	lx = max(-(hx - r), min(hx-r, lx))
+	ly = max(-(hy - r), min(hy-r, ly))
 
 	return s.X + lx*cosR - ly*sinR, s.Y + lx*sinR + ly*cosR
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 type Area struct{ X, Y, Width, Height float32 }
@@ -45,8 +46,8 @@ var GameLoop func()
 //=================================================================
 
 var shapeA = func() geometry.Shape {
-	var s = geometry.Shape{X: 400, Y: 400, Width: 250, Height: 250}
-	s.SetAR(20, 1)
+	var s = geometry.Shape{X: 400, Y: 400, Width: 450, Height: 250}
+	s.SetAR(20, 0.5)
 	return s
 }()
 var shapeB = func() geometry.Shape {
@@ -64,6 +65,9 @@ func Init(gameLoop func()) {
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 }
 
+var clX, clY float32 // Closest point coordinates
+var mx, my float32   // Mouse coordinates
+
 func (d *Data) Update() error {
 	if d.Engine.Exiting {
 		return ebiten.Termination
@@ -71,6 +75,7 @@ func (d *Data) Update() error {
 	cacheInput()
 	cacheTime()
 
+	// 1. Handle Movement for Shape B
 	const speed = 5.0
 	if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) || ebiten.IsKeyPressed(ebiten.KeyA) {
 		shapeB.X -= speed
@@ -85,6 +90,18 @@ func (d *Data) Update() error {
 		shapeB.Y += speed
 	}
 
+	// 2. Handle Rotation for Shape A
+	currentAngle := shapeA.Angle()
+	currentRoundness := shapeA.Roundness()
+	// Increment angle (e.g., 1 degree per frame)
+	newAngle := currentAngle + 1.0
+	shapeA.SetAR(newAngle, currentRoundness)
+
+	// 3. Closest Point & Collision Logic
+	imx, imy := ebiten.CursorPosition()
+	mx, my = float32(imx), float32(imy)
+	clX, clY = shapeA.ClosestPointOnEdge(mx, my)
+
 	shapeB = shapeA.Collide(shapeB)
 
 	GameLoop()
@@ -94,10 +111,23 @@ func (d *Data) Update() error {
 func (d *Data) Draw(screen *ebiten.Image) {
 	scrSize := screen.Bounds().Size()
 
+	// 1. Draw the actual shapes
 	drawShape(screen, scrSize, shapeA, color.RGBA{100, 180, 255, 255}, []float32{1, 1, 1, 1}, 10)
 	drawShape(screen, scrSize, shapeB, color.RGBA{255, 255, 255, 200}, []float32{1, 1, 1, 1}, 10)
 
+	// 2. Draw the Bounds of ShapeA
+	x1, y1, x2, y2 := shapeA.Bounds()
+	bw, bh := x2-x1, y2-y1
+	// A thin cyan rectangle to show the AABB
+	vector.StrokeRect(screen, x1, y1, bw, bh, 3, color.RGBA{0, 255, 255, 100}, true)
+
+	// 3. Draw the Closest Point visualization
+	vector.StrokeLine(screen, mx, my, clX, clY, 12, color.RGBA{255, 255, 0, 150}, true)
+	vector.DrawFilledCircle(screen, clX, clY, 6, color.RGBA{255, 255, 0, 255}, true)
+
+	// 4. Debug Prints
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("FPS: %.0f", ebiten.ActualFPS()), 8, 8)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Bounds: (%.1f, %.1f) to (%.1f, %.1f)", x1, y1, x2, y2), 8, 24)
 }
 
 func (d *Data) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
