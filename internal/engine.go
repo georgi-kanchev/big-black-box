@@ -44,8 +44,16 @@ var GameLoop func()
 
 //=================================================================
 
-var shapeA = geometry.Shape{X: 400, Y: 400, Width: 250, Height: 250, Angle: 20, Roundness: 1}
-var shapeB = geometry.Shape{Width: 120, Height: 120, Roundness: 1}
+var shapeA = func() geometry.Shape {
+	var s = geometry.Shape{X: 400, Y: 400, Width: 250, Height: 250}
+	s.SetAR(20, 1)
+	return s
+}()
+var shapeB = func() geometry.Shape {
+	var s = geometry.Shape{Width: 120, Height: 120}
+	s.SetAR(0, 1)
+	return s
+}()
 
 func Init(gameLoop func()) {
 	GameLoop = gameLoop
@@ -77,10 +85,7 @@ func (d *Data) Update() error {
 		shapeB.Y += speed
 	}
 
-	if px, py, hit := shapeA.Collide(&shapeB); hit {
-		shapeB.X += px
-		shapeB.Y += py
-	}
+	shapeB = shapeA.Collide(shapeB)
 
 	GameLoop()
 	return nil
@@ -100,12 +105,13 @@ func (d *Data) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func drawShape(screen *ebiten.Image, scrSize image.Point, s geometry.Shape, fill color.RGBA, outlineColor []float32, outlineThickness float32) {
+	var angle, roundness = s.Angle(), s.Roundness()
 	op := &ebiten.DrawRectShaderOptions{}
 	op.Uniforms = map[string]interface{}{
 		"Center":           []float32{s.X, s.Y},
 		"Size":             []float32{s.Width, s.Height},
-		"Roundness":        s.Roundness,
-		"Rotation":         s.Angle * (3.14159265 / 180.0),
+		"Roundness":        roundness,
+		"Rotation":         angle * (3.14159265 / 180.0),
 		"OutlineThickness": outlineThickness,
 		"OutlineColor":     outlineColor,
 	}

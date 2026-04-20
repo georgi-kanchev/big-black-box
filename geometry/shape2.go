@@ -7,46 +7,80 @@ import (
 
 type Shape struct {
 	X, Y, Width, Height float32
-	Angle               float32 // in degrees
-	Roundness           float32 // 0 to 1
+	ar                  float32
+}
+
+func (s Shape) Angle() float32             { var a, _ = unpackAR(s.ar); return a }
+func (s Shape) Roundness() float32         { var _, r = unpackAR(s.ar); return r }
+func (s *Shape) SetAR(angle, roundness float32) { s.ar = packAR(angle, roundness) }
+
+func packAR(angle, roundness float32) float32 {
+	var idx = ((int(angle*10) % 3600) + 3600) % 3600
+	var r = min(int(roundness*4659), 4659)
+	return -float32(r*3600+idx+1)
+}
+
+func unpackAR(ar float32) (angle, roundness float32) {
+	var abs = int(-ar) - 1
+	if abs < 0 {
+		return 0, 0
+	}
+	return float32(abs%3600) * 0.1, float32(abs/3600) / 4659
 }
 
 // DistanceToPoint returns the signed distance from the shape boundary to (x, y).
 // Negative means inside, zero means on the edge, positive means outside.
-func (s *Shape) DistanceToPoint(x, y float32) float32 {
+func (s Shape) DistanceToPoint(x, y float32) float32 {
+	var angle, roundness = unpackAR(s.ar)
 	var px = x - s.X
 	var py = y - s.Y
 
-	var rad = float64(-s.Angle) * (math.Pi / 180.0)
+	var rad = float64(-angle) * (math.Pi / 180.0)
 	var cosR = float32(math.Cos(rad))
 	var sinR = float32(math.Sin(rad))
 	var lx = px*cosR - py*sinR
 	var ly = px*sinR + py*cosR
 
 	var hx, hy = s.Width * 0.5, s.Height * 0.5
-	var r = s.Roundness * min(hx, hy)
+	var r = roundness * min(hx, hy)
 	var qx = number.Absolute(lx) - (hx - r)
 	var qy = number.Absolute(ly) - (hy - r)
 	return number.SquareRoot(max(qx, 0)*max(qx, 0)+max(qy, 0)*max(qy, 0)) + min(max(qx, qy), 0) - r
 }
 
-func (s *Shape) Contains(x, y float32) bool {
+func (s Shape) Contains(x, y float32) bool {
 	return s.DistanceToPoint(x, y) <= 0
 }
 
-// Overlap reports whether s and other intersect.
-func (s *Shape) Overlap(other *Shape) bool {
-	var dx, dy = other.X - s.X, other.Y - s.Y
+// Bounds returns the tight axis-aligned bounding box of the shape.
+func (s Shape) Bounds() (minX, minY, maxX, maxY float32) {
+	var angle, roundness = unpackAR(s.ar)
+	var rad = float64(angle) * (math.Pi / 180.0)
+	var cosR = number.Absolute(float32(math.Cos(rad)))
+	var sinR = number.Absolute(float32(math.Sin(rad)))
+	var hx, hy = s.Width * 0.5, s.Height * 0.5
+	var r = roundness * min(hx, hy)
+	var extentX = (hx-r)*cosR + (hy-r)*sinR + r
+	var extentY = (hx-r)*sinR + (hy-r)*cosR + r
+	return s.X - extentX, s.Y - extentY, s.X + extentX, s.Y + extentY
+}
 
-	var ra = number.SquareRoot(s.Width*s.Width+s.Height*s.Height) * 0.5
-	var rb = number.SquareRoot(other.Width*other.Width+other.Height*other.Height) * 0.5
-	if dx*dx+dy*dy > (ra+rb)*(ra+rb) {
-		return false
+// Overlap reports whether s and other intersect.
+func (s Shape) Overlap(other Shape) bool {
+	{ // AABB broadphase
+		var sMinX, sMinY, sMaxX, sMaxY = s.Bounds()
+		var oMinX, oMinY, oMaxX, oMaxY = other.Bounds()
+		if sMaxX < oMinX || oMaxX < sMinX || sMaxY < oMinY || oMaxY < sMinY {
+			return false
+		}
 	}
 
-	var sRad = float64(s.Angle) * (math.Pi / 180.0)
+	var dx, dy = other.X - s.X, other.Y - s.Y
+	var sAngle, _ = unpackAR(s.ar)
+	var sRad = float64(sAngle) * (math.Pi / 180.0)
 	var sCos, sSin = float32(math.Cos(sRad)), float32(math.Sin(sRad))
-	var oRad = float64(other.Angle) * (math.Pi / 180.0)
+	var oAngle, _ = unpackAR(other.ar)
+	var oRad = float64(oAngle) * (math.Pi / 180.0)
 	var oCos, oSin = float32(math.Cos(oRad)), float32(math.Sin(oRad))
 
 	{ // s local X
@@ -90,20 +124,18 @@ func (s *Shape) Overlap(other *Shape) bool {
 	return true
 }
 
-// Collide returns the minimum vector to move other out of s, and whether they collide.
-// Add the returned (px, py) to other.X / other.Y to resolve the collision.
-func (s *Shape) Collide(other *Shape) (px, py float32, collided bool) {
-	var dx, dy = other.X - s.X, other.Y - s.Y
-
-	var ra = number.SquareRoot(s.Width*s.Width+s.Height*s.Height) * 0.5
-	var rb = number.SquareRoot(other.Width*other.Width+other.Height*other.Height) * 0.5
-	if dx*dx+dy*dy > (ra+rb)*(ra+rb) {
-		return 0, 0, false
+// Collide returns other moved out of s by the minimum translation vector.
+func (s Shape) Collide(other Shape) Shape {
+	if !s.Overlap(other) {
+		return other
 	}
 
-	var sRad = float64(s.Angle) * (math.Pi / 180.0)
+	var dx, dy = other.X - s.X, other.Y - s.Y
+	var sAngle, _ = unpackAR(s.ar)
+	var sRad = float64(sAngle) * (math.Pi / 180.0)
 	var sCos, sSin = float32(math.Cos(sRad)), float32(math.Sin(sRad))
-	var oRad = float64(other.Angle) * (math.Pi / 180.0)
+	var oAngle, _ = unpackAR(other.ar)
+	var oRad = float64(oAngle) * (math.Pi / 180.0)
 	var oCos, oSin = float32(math.Cos(oRad)), float32(math.Sin(oRad))
 
 	var minDepth = number.ValueBiggest[float32]()
@@ -116,9 +148,6 @@ func (s *Shape) Collide(other *Shape) (px, py float32, collided bool) {
 			d, ax0, ax1 = -d, -ax0, -ax1
 		}
 		var depth = support(s, ax0, ax1, sCos, sSin) + support(other, ax0, ax1, oCos, oSin) - d
-		if depth <= 0 {
-			return 0, 0, false
-		}
 		if depth < minDepth {
 			minDepth, minAx0, minAx1 = depth, ax0, ax1
 		}
@@ -130,9 +159,6 @@ func (s *Shape) Collide(other *Shape) (px, py float32, collided bool) {
 			d, ax0, ax1 = -d, -ax0, -ax1
 		}
 		var depth = support(s, ax0, ax1, sCos, sSin) + support(other, ax0, ax1, oCos, oSin) - d
-		if depth <= 0 {
-			return 0, 0, false
-		}
 		if depth < minDepth {
 			minDepth, minAx0, minAx1 = depth, ax0, ax1
 		}
@@ -144,9 +170,6 @@ func (s *Shape) Collide(other *Shape) (px, py float32, collided bool) {
 			d, ax0, ax1 = -d, -ax0, -ax1
 		}
 		var depth = support(s, ax0, ax1, sCos, sSin) + support(other, ax0, ax1, oCos, oSin) - d
-		if depth <= 0 {
-			return 0, 0, false
-		}
 		if depth < minDepth {
 			minDepth, minAx0, minAx1 = depth, ax0, ax1
 		}
@@ -158,9 +181,6 @@ func (s *Shape) Collide(other *Shape) (px, py float32, collided bool) {
 			d, ax0, ax1 = -d, -ax0, -ax1
 		}
 		var depth = support(s, ax0, ax1, sCos, sSin) + support(other, ax0, ax1, oCos, oSin) - d
-		if depth <= 0 {
-			return 0, 0, false
-		}
 		if depth < minDepth {
 			minDepth, minAx0, minAx1 = depth, ax0, ax1
 		}
@@ -177,38 +197,38 @@ func (s *Shape) Collide(other *Shape) (px, py float32, collided bool) {
 				d, ax0, ax1 = -d, -ax0, -ax1
 			}
 			var depth = support(s, ax0, ax1, sCos, sSin) + support(other, ax0, ax1, oCos, oSin) - d
-			if depth <= 0 {
-				return 0, 0, false
-			}
 			if depth < minDepth {
 				minDepth, minAx0, minAx1 = depth, ax0, ax1
 			}
 		}
 	}
 
-	return minAx0 * minDepth, minAx1 * minDepth, true
+	other.X += minAx0 * minDepth
+	other.Y += minAx1 * minDepth
+	return other
 }
 
 // private ========================================================
 
-func support(s *Shape, ax0, ax1, cosR, sinR float32) float32 {
-	// support returns how far shape s extends along axis (ax0, ax1).
+func support(s Shape, ax0, ax1, cosR, sinR float32) float32 {
+	var _, roundness = unpackAR(s.ar)
 	var hx, hy = s.Width * 0.5, s.Height * 0.5
-	var r = s.Roundness * min(hx, hy)
+	var r = roundness * min(hx, hy)
 	var dX = number.Absolute(ax0*cosR + ax1*sinR)
 	var dY = number.Absolute(-ax0*sinR + ax1*cosR)
 	return (hx-r)*dX + (hy-r)*dY + r
 }
-func nearestInnerBoxPoint(s *Shape, px, py, cosR, sinR float32) (float32, float32) {
-	// nearestInnerBoxPoint returns the closest point on s's inner box to world point (px, py).
+
+func nearestInnerBoxPoint(s Shape, px, py, cosR, sinR float32) (float32, float32) {
+	var _, roundness = unpackAR(s.ar)
 	var rx, ry = px - s.X, py - s.Y
 	var lx = rx*cosR + ry*sinR
 	var ly = -rx*sinR + ry*cosR
 
 	var hx, hy = s.Width * 0.5, s.Height * 0.5
-	var r = s.Roundness * min(hx, hy)
-	lx = max(-(hx - r), min(hx-r, lx))
-	ly = max(-(hy - r), min(hy-r, ly))
+	var r = roundness * min(hx, hy)
+	lx = max(-(hx-r), min(hx-r, lx))
+	ly = max(-(hy-r), min(hy-r, ly))
 
 	return s.X + lx*cosR - ly*sinR, s.Y + lx*sinR + ly*cosR
 }
