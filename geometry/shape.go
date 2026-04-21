@@ -4,7 +4,6 @@ import (
 	"big-black-box/internal"
 	"big-black-box/utility/number"
 	"big-black-box/utility/point"
-	"math"
 )
 
 type Shape internal.Shape
@@ -14,9 +13,7 @@ func (s Shape) DistanceToPoint(x, y float32) float32 {
 	var px = x - s.X
 	var py = y - s.Y
 
-	var rad = float64(-s.Angle) * (math.Pi / 180.0)
-	var cosR = float32(math.Cos(rad))
-	var sinR = float32(math.Sin(rad))
+	var sinR, cosR = internal.SinCos(-s.Angle)
 	var lx = px*cosR - py*sinR
 	var ly = px*sinR + py*cosR
 
@@ -33,9 +30,7 @@ func (s Shape) ClosestPointOnEdge(x, y float32) (float32, float32) {
 	var px = x - s.X
 	var py = y - s.Y
 
-	var rad = float64(-s.Angle) * (math.Pi / 180.0)
-	var cosR = float32(math.Cos(rad))
-	var sinR = float32(math.Sin(rad))
+	var sinR, cosR = internal.SinCos(-s.Angle)
 	var lx = px*cosR - py*sinR
 	var ly = px*sinR + py*cosR
 
@@ -73,19 +68,26 @@ func (s Shape) ClosestPointOnEdge(x, y float32) (float32, float32) {
 
 	return bx*cosR + by*sinR + s.X, -bx*sinR + by*cosR + s.Y
 }
-func (s Shape) Raycast(x, y, angle float32) (float32, float32) {
-	const lineLen = float32(1e6) // around 500 000
-	var lx, ly = point.MoveAtAngle(x, y, angle, lineLen*0.5)
-	var line = Shape{X: lx, Y: ly, Width: lineLen, Angle: angle}
-	if !s.Overlap(line) {
+func (s Shape) Raycast(x, y, angle, length float32) (float32, float32) {
+	var lx, ly = point.MoveAtAngle(x, y, angle, length*0.5)
+	if !s.Overlap(Shape{X: lx, Y: ly, Width: length, Angle: angle}) {
 		return number.NaN(), number.NaN()
 	}
-	return s.ClosestPointOnEdge(x, y)
+	var dy, dx = internal.SinCos(angle)
+	var t = float32(0)
+	for range 64 {
+		var cx, cy = x + t*dx, y + t*dy
+		var dist = s.DistanceToPoint(cx, cy)
+		if dist <= 1e-4 {
+			return s.ClosestPointOnEdge(cx, cy)
+		}
+		t += dist
+	}
+	return number.NaN(), number.NaN()
 }
 func (s Shape) Bounds() (minX, minY, maxX, maxY float32) {
-	var rad = float64(s.Angle) * (math.Pi / 180.0)
-	var cosR = number.Absolute(float32(math.Cos(rad)))
-	var sinR = number.Absolute(float32(math.Sin(rad)))
+	var sinR, cosR = internal.SinCos(s.Angle)
+	sinR, cosR = number.Absolute(sinR), number.Absolute(cosR)
 	var hx, hy = s.Width * 0.5, s.Height * 0.5
 	var r = s.Roundness * min(hx, hy)
 	var extentX = (hx-r)*cosR + (hy-r)*sinR + r
@@ -102,10 +104,8 @@ func (s Shape) Overlap(other Shape) bool {
 	}
 
 	var dx, dy = other.X - s.X, other.Y - s.Y
-	var sRad = float64(s.Angle) * (math.Pi / 180.0)
-	var sCos, sSin = float32(math.Cos(sRad)), float32(math.Sin(sRad))
-	var oRad = float64(other.Angle) * (math.Pi / 180.0)
-	var oCos, oSin = float32(math.Cos(oRad)), float32(math.Sin(oRad))
+	var sSin, sCos = internal.SinCos(s.Angle)
+	var oSin, oCos = internal.SinCos(other.Angle)
 
 	{ // s local X
 		var proj = number.Absolute(dx*sCos + dy*sSin)
@@ -153,10 +153,8 @@ func (s Shape) Collide(other Shape) Shape {
 	}
 
 	var dx, dy = other.X - s.X, other.Y - s.Y
-	var sRad = float64(s.Angle) * (math.Pi / 180.0)
-	var sCos, sSin = float32(math.Cos(sRad)), float32(math.Sin(sRad))
-	var oRad = float64(other.Angle) * (math.Pi / 180.0)
-	var oCos, oSin = float32(math.Cos(oRad)), float32(math.Sin(oRad))
+	var sSin, sCos = internal.SinCos(s.Angle)
+	var oSin, oCos = internal.SinCos(other.Angle)
 
 	var minDepth = number.ValueBiggest[float32]()
 	var minAx0, minAx1 float32

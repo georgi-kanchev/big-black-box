@@ -41,13 +41,13 @@ func (d Data) DrawStart() {
 }
 func (d Data) Draw(screen *ebiten.Image) {
 	scrSize := screen.Bounds().Size()
-	for i := range DrawQueues[0] {
+	for i := range DrawCounts[0] {
 		drawShape(screen, scrSize, DrawQueues[0][i].Shape, DrawQueues[0][i].Color, DrawQueues[0][i].OutlineColor, DrawQueues[0][i].OutlineSize)
 	}
-	for i := range DrawQueues[1] {
+	for i := range DrawCounts[1] {
 		drawShape(screen, scrSize, DrawQueues[1][i].Shape, DrawQueues[1][i].Color, DrawQueues[1][i].OutlineColor, DrawQueues[1][i].OutlineSize)
 	}
-	for i := range DrawQueues[2] {
+	for i := range DrawCounts[2] {
 		drawShape(screen, scrSize, DrawQueues[2][i].Shape, DrawQueues[2][i].Color, DrawQueues[2][i].OutlineColor, DrawQueues[2][i].OutlineSize)
 	}
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("FPS: %.0f", ebiten.ActualFPS()), 8, 8)

@@ -4,6 +4,8 @@ import (
 	"big-black-box/engine"
 	"big-black-box/geometry"
 	"big-black-box/graphics"
+	"big-black-box/utility/angle"
+	"big-black-box/utility/number"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -36,7 +38,13 @@ func main() {
 
 		shapeB = shapeA.Collide(shapeB)
 
+		angle := angle.BetweenPoints(shapeB.X, shapeB.Y, shapeA.X, shapeA.Y)
+		hitX, hitY := shapeA.Raycast(shapeB.X, shapeB.Y, angle, 500)
+
 		cam.DrawShape(shapeA)
 		cam.DrawShape(shapeB)
+		if !number.IsNaN(hitX) {
+			cam.DrawShape(geometry.Shape{X: hitX, Y: hitY, Width: 16, Height: 16, Roundness: 1})
+		}
 	})
 }
