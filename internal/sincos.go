@@ -2,20 +2,25 @@ package internal
 
 import "math"
 
-// optimized for speed via lookup table
+// optimized for speed via power-of-two lookup table and bitwise masking
 func SinCos(degrees float32) (sin, cos float32) {
-	var index = int(degrees * 10)          // convert to index (0.1 degree precision)
-	index = ((index % 3600) + 3600) % 3600 // and wrap 0-3599
-	// sine is direct lookup, cosine is sine shifted by 90 degrees (900 indices)
-	return sineTable[index], sineTable[(index+900)%3600]
+	// Scale degrees to the 4096 range (roughly 11.377 units per degree)
+	var index = int(degrees * (4096.0 / 360.0))
+	index &= 4095 // Fast bitwise wrap-around (replaces modulo)
+
+	// Sine is direct lookup, cosine is sine shifted by 90 degrees (1024 indices)
+	return sineTable[index], sineTable[(index+1024)&4095]
 }
 
 func SinCosCache() {
-	for i := range 3600 {
-		var rad = float64(i) * math.Pi / 1800.0 // convert index to radians (i / 10.0 * Pi / 180.0)
+	for i := range 4096 {
+		// Convert index back to radians for the initial calculation
+		// (i / 4096.0) * 2 * Pi
+		var rad = (float64(i) / 4096.0) * (2.0 * math.Pi)
 		sineTable[i] = float32(math.Sin(rad))
 	}
 }
 
 // private ========================================================
-var sineTable [3600]float32
+// 4096 * 4 bytes = 16KB (Fits comfortably in L1 Cache)
+var sineTable [4096]float32

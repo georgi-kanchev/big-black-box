@@ -13,8 +13,8 @@ func Run(gameLoop func()) {
 
 	window.SetMonitor(0)
 	window.SetTitle("game")
-	window.SetVsync(true)
-	window.SetPixelScale(1)
+	window.SetVsync(false)
+	window.SetPixelScale(2)
 	SetTargetTickRate(60)
 
 	var err = ebiten.RunGame(&internal.State)
