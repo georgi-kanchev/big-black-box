@@ -22,10 +22,10 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
     q := abs(p) - halfSize + currentRadius
     d := length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - currentRadius
     
-    // 1. Calculate the Fill Mask
+    // Calculate the Fill Mask
     shapeAlpha := 1.0 - smoothstep(-0.7, 0.7, d)
     
-    // 2. Calculate the Outline Mask
+    // Calculate the Outline Mask
     // Positive thickness grows inward (d < 0 region), negative grows outward (d > 0 region).
     innerEdge := max(0.0, OutlineThickness)
     outerEdge := max(0.0, -OutlineThickness)

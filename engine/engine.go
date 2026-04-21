@@ -15,6 +15,7 @@ func Run(gameLoop func()) {
 	window.SetTitle("game")
 	window.SetVsync(true)
 	SetTargetTickRate(60)
+	SetPixelScale(2)
 
 	var err = ebiten.RunGame(&internal.State)
 	if err != nil {
@@ -33,4 +34,10 @@ func GetTargetTickRate() int {
 func SetTargetTickRate(ticksPerSecond int) {
 	internal.State.Engine.TargetTickRate = ticksPerSecond
 	ebiten.SetTPS(ticksPerSecond)
+}
+func GetPixelScale() float32 {
+	return internal.State.Engine.PixelScale
+}
+func SetPixelScale(pixelScale float32) {
+	internal.State.Engine.PixelScale = pixelScale
 }
