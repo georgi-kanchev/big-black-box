@@ -81,3 +81,10 @@ func IsHovered() bool {
 func IsFocused() bool {
 	return ebiten.IsFocused()
 }
+
+func GetPixelScale() float32 {
+	return internal.State.Window.PixelScale
+}
+func SetPixelScale(pixelScale float32) {
+	internal.State.Window.PixelScale = pixelScale
+}

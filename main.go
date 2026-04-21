@@ -36,7 +36,7 @@ func main() {
 
 		shapeB = shapeA.Collide(shapeB)
 
-		cam.RenderShape(shapeA)
-		cam.RenderShape(shapeB)
+		cam.DrawShape(shapeA)
+		cam.DrawShape(shapeB)
 	})
 }
