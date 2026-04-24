@@ -1,9 +1,6 @@
 package text
 
-import (
-	"strconv"
-	"strings"
-)
+import "strings"
 
 func Pad(text string, length int, pad string) string {
 	var textLen = Length(text)
@@ -29,22 +26,6 @@ func PadRight(text string, length int, pad string) string {
 		return text
 	}
 	return text + repeatPad(pad, padding)
-}
-func PadZeros(number float32, count int) string {
-	if count == 0 {
-		return Start().Float(number).End()
-	}
-
-	if count < 0 {
-		var width = -count
-		var s = strconv.Itoa(int(number))
-		for Length(s) < width {
-			s = "0" + s
-		}
-		return s
-	}
-
-	return strconv.FormatFloat(float64(number), 'f', count, 32)
 }
 
 func Trim(text string) string {

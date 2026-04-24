@@ -4,13 +4,16 @@ import (
 	"big-black-box/packages/engine"
 	"big-black-box/packages/geometry"
 	"big-black-box/packages/graphics"
-	"big-black-box/packages/input/keyboard"
-	"big-black-box/packages/input/keyboard/key"
 	"big-black-box/packages/utility/angle"
 	"big-black-box/packages/utility/number"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
+
+const core = " .,;:!?¡¿\"'()[]{}<>-/\\@#$%^&*_+=|~`" + "0123456789" + "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+const latin = "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÑÒÓÔÕÖØÙÚÛÜÝßŒŠŽŁŃŚŹŻĆČĐŐŰàáâãäåæçèéêëìíîïñòóôõöøùúûüýÿœšžłńśźżćčđőűẞ"
+const cyrillic = "АБВГДЕЁЖЗИЙКЛМНОПРСТУΦΧЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюяҐЄІЇґєії"
+const all = core + latin + cyrillic
 
 func main() {
 	var cam = graphics.NewCamera()
@@ -30,10 +33,6 @@ func main() {
 		}
 		if ebiten.IsKeyPressed(ebiten.KeyArrowDown) || ebiten.IsKeyPressed(ebiten.KeyS) {
 			shapeB.Y += speed
-		}
-
-		if keyboard.IsJustPressed(key.A) {
-			shapeB.Width = 200
 		}
 
 		currentAngle := shapeA.Angle

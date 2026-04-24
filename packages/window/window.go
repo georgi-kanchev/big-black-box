@@ -8,12 +8,6 @@ import (
 
 type Mode byte
 
-const (
-	ModeFloating Mode = iota
-	ModeMaximized
-	ModeFullscreen
-)
-
 func GetTitle() string {
 	return internal.State.Window.Title
 }
@@ -35,16 +29,16 @@ func GetMode() Mode {
 }
 func SetMode(mode Mode) {
 	internal.State.Window.Mode = byte(mode)
-	if mode != ModeFullscreen && ebiten.IsFullscreen() {
+	if mode != 2 && ebiten.IsFullscreen() {
 		ebiten.SetFullscreen(false)
 	}
 
 	switch mode {
-	case ModeFloating:
+	case 0: // floating
 		ebiten.RestoreWindow()
-	case ModeMaximized:
+	case 1: // maximized
 		ebiten.MaximizeWindow()
-	case ModeFullscreen:
+	case 2: // fullscreen
 		ebiten.SetFullscreen(true)
 	}
 }

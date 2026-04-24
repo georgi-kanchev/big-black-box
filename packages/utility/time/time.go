@@ -91,7 +91,8 @@ func formatTimeParts(ts time.Duration, divider string, units int, is12Hour, amPm
 		} else if counter > 0 {
 			text.BuilderWriteString(divider)
 		}
-		text.BuilderWriteString(strconv.Itoa(val))
+
+		text.BuilderWriteString(text.PadLeft(strconv.Itoa(val), 3, "0"))
 		counter++
 	}
 
