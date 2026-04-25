@@ -18,7 +18,7 @@ const all = core + latin + cyrillic
 
 func main() {
 	const offset = 250.0
-	var cam = graphics.NewView()
+	var view = graphics.NewView()
 	var obstacle = geometry.NewRoundedRectangle(400+offset, 400, 450, 250, 0, 0.5)
 	var player = geometry.NewCircle(100+offset, 100, 40)
 	var staticShapes = []geometry.Shape{
@@ -68,15 +68,15 @@ func main() {
 
 		//=================================================================
 
-		cam.DrawShape(obstacle)
+		view.DrawShape(obstacle)
 		for _, s := range staticShapes {
-			cam.DrawShape(s)
+			view.DrawShape(s)
 		}
-		cam.DrawShape(player)
+		view.DrawShape(player)
 
 		if !number.IsNaN(hitX) {
-			cam.DrawShape(geometry.NewCircle(hitX, hitY, 6))
+			view.DrawShape(geometry.NewCircle(hitX, hitY, 6))
 		}
-		cam.DrawDebugInfo()
+		view.DrawDebugInfo()
 	})
 }
