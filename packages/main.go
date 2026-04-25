@@ -18,7 +18,7 @@ const all = core + latin + cyrillic
 
 func main() {
 	const offset = 250.0
-	var cam = graphics.NewCamera()
+	var cam = graphics.NewView()
 	var obstacle = geometry.NewRoundedRectangle(400+offset, 400, 450, 250, 0, 0.5)
 	var player = geometry.NewCircle(100+offset, 100, 40)
 	var staticShapes = []geometry.Shape{

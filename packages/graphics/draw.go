@@ -10,7 +10,7 @@ import (
 	"big-black-box/packages/utility/time/unit"
 )
 
-func (c Camera) DrawShape(shape geometry.Shape) {
+func (v View) DrawShape(shape geometry.Shape) {
 	internal.Queue(internal.LayerDefault, internal.DrawItem{
 		Kind:  internal.KindShape,
 		Shape: internal.Shape(shape),
@@ -18,7 +18,7 @@ func (c Camera) DrawShape(shape geometry.Shape) {
 	})
 }
 
-func (c Camera) DrawFPS() {
+func (v View) DrawFPS() {
 	internal.Queue(internal.LayerDefault, internal.DrawItem{
 		Kind:  internal.KindText,
 		Shape: internal.Shape{X: 5, Y: 5},
@@ -26,7 +26,7 @@ func (c Camera) DrawFPS() {
 		Color: palette.White,
 	})
 }
-func (c Camera) DrawDebugInfo() {
+func (v View) DrawDebugInfo() {
 	internal.Queue(internal.LayerDefault, internal.DrawItem{
 		Kind:  internal.KindText,
 		Shape: internal.Shape{X: 5, Y: 5},

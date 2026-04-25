@@ -7,11 +7,11 @@ import (
 type Area struct{ X, Y, Width, Height float32 }
 type Shape struct{ X, Y, Width, Height, Angle, Roundness float32 }
 
-type Camera struct {
+type View struct {
 	X, Y, Zoom, Angle float32
 
 	WindowArea Area // The draw area in window space. Zero value = entire window.
-	MaskArea   Area // In camera space. Everything drawn outside of it is cropped. Zero value = no masking.
+	MaskArea   Area // In view space. Everything drawn outside of it is cropped. Zero value = no masking.
 }
 
 type Window struct {
@@ -30,9 +30,9 @@ type Engine struct {
 }
 
 type Data struct {
-	Engine  Engine
-	Window  Window
-	Cameras [8]Camera
+	Engine Engine
+	Window Window
+	Views  [8]View
 }
 
 var State Data
