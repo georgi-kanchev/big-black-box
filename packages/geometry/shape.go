@@ -23,10 +23,10 @@ func (s Shape) DistanceToPoint(x, y float32) float32 {
 	var qy = number.Absolute(ly) - (hy - r)
 	return number.SquareRoot(max(qx, 0)*max(qx, 0)+max(qy, 0)*max(qy, 0)) + min(max(qx, qy), 0) - r
 }
-func (s Shape) Contains(x, y float32) bool {
+func (s Shape) ContainsPoint(x, y float32) bool {
 	return s.DistanceToPoint(x, y) <= 0
 }
-func (s Shape) ClosestPointOnEdge(x, y float32) (float32, float32) {
+func (s Shape) ClosestPointToEdge(x, y float32) (float32, float32) {
 	var px = x - s.X
 	var py = y - s.Y
 
@@ -70,7 +70,7 @@ func (s Shape) ClosestPointOnEdge(x, y float32) (float32, float32) {
 }
 func (s Shape) Raycast(x, y, angle, length float32) (float32, float32) {
 	var lx, ly = point.MoveAtAngle(x, y, angle, length*0.5)
-	if !s.Overlap(Shape{X: lx, Y: ly, Width: length, Angle: angle}) {
+	if !s.Overlaps(Shape{X: lx, Y: ly, Width: length, Angle: angle}) {
 		return number.NaN(), number.NaN()
 	}
 	var dy, dx = internal.SinCos(angle)
@@ -79,7 +79,7 @@ func (s Shape) Raycast(x, y, angle, length float32) (float32, float32) {
 		var cx, cy = x + t*dx, y + t*dy
 		var dist = s.DistanceToPoint(cx, cy)
 		if dist <= 1e-4 {
-			return s.ClosestPointOnEdge(cx, cy)
+			return s.ClosestPointToEdge(cx, cy)
 		}
 		t += dist
 	}
@@ -94,7 +94,7 @@ func (s Shape) Bounds() (minX, minY, maxX, maxY float32) {
 	var extentY = (hx-r)*sinR + (hy-r)*cosR + r
 	return s.X - extentX, s.Y - extentY, s.X + extentX, s.Y + extentY
 }
-func (s Shape) Overlap(other Shape) bool {
+func (s Shape) Overlaps(other Shape) bool {
 	{ // AABB broadphase
 		var sMinX, sMinY, sMaxX, sMaxY = s.Bounds()
 		var oMinX, oMinY, oMaxX, oMaxY = other.Bounds()
@@ -148,7 +148,7 @@ func (s Shape) Overlap(other Shape) bool {
 	return true
 }
 func (s Shape) Collide(other Shape) Shape {
-	if !s.Overlap(other) {
+	if !s.Overlaps(other) {
 		return other
 	}
 
