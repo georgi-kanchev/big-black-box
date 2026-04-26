@@ -29,8 +29,7 @@ func NewRoundedRectangle(x, y, width, height, angle, roundness float32) Shape {
 	return Shape{X: x, Y: y, Width: width, Height: height, Angle: angle, Roundness: roundness}
 }
 
-// NewCapsule creates a capsule where (x1, y1) and (x2, y2) are the
-// center points of the circular end-caps.
+// NewCapsule creates a capsule where (x1, y1) and (x2, y2) are the center points of the circular end-caps.
 func NewCapsule(x1, y1, x2, y2, radius float32) Shape {
 	var dist = point.DistanceToPoint(x1, y1, x2, y2)
 	var ang = angle.BetweenPoints(x1, y1, x2, y2)
@@ -66,7 +65,7 @@ func (s Shape) DistanceToPoint(x, y float32) float32 {
 func (s Shape) ContainsPoint(x, y float32) bool {
 	return s.DistanceToPoint(x, y) <= 0
 }
-func (s Shape) ClosestPointToEdge(x, y float32) (float32, float32) {
+func (s Shape) ClosestPointToEdge(x, y float32) (edgeX, edgeY float32) {
 	var px = x - s.X
 	var py = y - s.Y
 
@@ -108,7 +107,7 @@ func (s Shape) ClosestPointToEdge(x, y float32) (float32, float32) {
 
 	return bx*cosR + by*sinR + s.X, -bx*sinR + by*cosR + s.Y
 }
-func (s Shape) Raycast(x, y, angle, length float32) (float32, float32) {
+func (s Shape) Raycast(x, y, angle, length float32) (hitX, hitY float32) {
 	var lx, ly = point.MoveAtAngle(x, y, angle, length*0.5)
 	if !s.Overlaps(Shape{X: lx, Y: ly, Width: length, Angle: angle}) {
 		return number.NaN(), number.NaN()
