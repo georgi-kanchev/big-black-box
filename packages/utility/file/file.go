@@ -3,9 +3,9 @@
 package file
 
 import (
+	"log"
 	"os"
-	"pure-game-kit/debug"
-	"pure-game-kit/utility/text"
+	"strings"
 )
 
 func Exists(path string) bool {
@@ -40,30 +40,30 @@ func TimeOfLastEdit(path string) (year, month, day, minute int) {
 
 func LoadBytes(path string) []byte {
 	if !Exists(path) {
-		debug.LogError("Failed to find file: \"", path, "\"")
+		log.Println("Failed to find file: \"", path, "\"")
 		return []byte{}
 	}
 
 	var data, err = os.ReadFile(path)
 	if err != nil {
-		debug.LogError("Failed to load file: \"", path, "\"\n", err)
+		log.Println("Failed to load file: \"", path, "\"\n", err)
 		return []byte{}
 	}
 	return data
 }
 func LoadText(path string) string {
-	return text.Remove(string(LoadBytes(path)), "\r") // FUCK windows pt1
+	return strings.ReplaceAll(string(LoadBytes(path)), "\r", "") // FUCK windows pt1
 }
 
 func SaveBytes(path string, content []byte) bool {
 	var err = os.WriteFile(path, content, 0644)
 	if err != nil {
-		debug.LogError("Failed to save file: \"", path, "\"\n", err)
+		log.Println("Failed to save file: \"", path, "\"\n", err)
 	}
 	return err == nil
 }
 func SaveText(path, content string) bool {
-	return SaveBytes(path, []byte(text.Remove(content, "\r"))) // FUCK windows pt2
+	return SaveBytes(path, []byte(strings.ReplaceAll(content, "\r", ""))) // FUCK windows pt2
 }
 func SaveTextAppend(path string, content string) bool {
 	if !Exists(path) {
@@ -76,11 +76,11 @@ func SaveTextAppend(path string, content string) bool {
 	defer file.Close()
 
 	if err != nil {
-		debug.LogError("Failed to open file: \"", path, "\"\n", err)
+		log.Println("Failed to open file: \"", path, "\"\n", err)
 		return false
 	}
 	if err2 != nil {
-		debug.LogError("Failed to append file: \"", path, "\"\n", err2)
+		log.Println("Failed to append file: \"", path, "\"\n", err2)
 		return false
 	}
 

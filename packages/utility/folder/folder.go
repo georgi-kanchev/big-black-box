@@ -3,9 +3,9 @@
 package folder
 
 import (
+	ph "big-black-box/packages/utility/path"
+	"log"
 	"os"
-	ph "pure-game-kit/data/path"
-	"pure-game-kit/debug"
 )
 
 func Exists(path string) bool {
@@ -35,13 +35,13 @@ func ByteSize(path string) int64 {
 }
 func TimeOfLastEdit(path string) (year, month, day, minute int) {
 	if !Exists(path) {
-		debug.LogError("Failed to find folder: \"", path, "\"")
+		log.Println("Failed to find folder: \"", path, "\"")
 		return 0, 0, 0, 0
 	}
 
 	var info, err = os.Stat(path)
 	if err != nil {
-		debug.LogError("Failed to read folder: \"", path, "\"\n", err)
+		log.Println("Failed to read folder: \"", path, "\"\n", err)
 		return 0, 0, 0, 0
 	}
 
@@ -114,7 +114,7 @@ func Folders(path string) []string {
 func Create(path string) bool {
 	var err = os.MkdirAll(path, 0755)
 	if err != nil {
-		debug.LogError("Failed to create folders: \"", path, "\"")
+		log.Println("Failed to create folders: \"", path, "\"")
 	}
 	return err == nil
 }

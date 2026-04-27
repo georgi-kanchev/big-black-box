@@ -6,17 +6,16 @@ package path
 
 import (
 	"path/filepath"
-	"pure-game-kit/internal"
-	"pure-game-kit/utility/text"
+	"strings"
 )
 
 func New(elements ...string) string {
-	return internal.Path(filepath.Join(elements...))
+	return normalize(filepath.Join(elements...))
 }
 
 func IsDirectory(path string) bool {
-	path = internal.Path(path)
-	if text.EndsWith(path, "/") {
+	path = normalize(path)
+	if strings.HasSuffix(path, "/") {
 		return true
 	}
 	return Extension(path) == ""
@@ -29,15 +28,21 @@ func LastPart(path string) string {
 	return filepath.Base(path)
 }
 func Folder(path string) string {
-	return internal.Path(filepath.Dir(path))
+	return normalize(filepath.Dir(path))
 }
 func Extension(path string) string {
-	return internal.Path(filepath.Ext(path))
+	return normalize(filepath.Ext(path))
 }
 func RemoveExtension(path string) string {
 	var ext = Extension(path)
 	if ext == "" {
 		return path
 	}
-	return internal.Path(path[:len(path)-len(ext)])
+	return normalize(path[:len(path)-len(ext)])
+}
+
+// private ========================================================
+
+func normalize(path string) string {
+	return strings.ReplaceAll(path, "\\", "/")
 }

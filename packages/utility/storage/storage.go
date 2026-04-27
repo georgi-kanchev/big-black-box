@@ -29,7 +29,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"io"
-	"pure-game-kit/debug"
+	"log"
 
 	"gopkg.in/yaml.v3"
 )
@@ -37,19 +37,19 @@ import (
 func FromJSON(jsonData string, objectPointer any) {
 	var err = json.Unmarshal([]byte(jsonData), objectPointer)
 	if err != nil {
-		debug.LogError("Failed to populate object with JSON data!\n", err)
+		log.Println("Failed to populate object with JSON data!\n", err)
 	}
 }
 func FromXML(xmlData string, objectPointer any) {
 	var err = xml.Unmarshal([]byte(xmlData), objectPointer)
 	if err != nil {
-		debug.LogError("Failed to populate object with XML data!\n", err)
+		log.Println("Failed to populate object with XML data!\n", err)
 	}
 }
 func FromYAML(yamlData string, objectPointer any) {
 	var err = yaml.Unmarshal([]byte(yamlData), objectPointer)
 	if err != nil {
-		debug.LogError("Failed to populate object with YAML data!\n", err)
+		log.Println("Failed to populate object with YAML data!\n", err)
 	}
 }
 
@@ -67,21 +67,21 @@ func FromBytes(data []byte, objectPointer any, registerTypes ...any) {
 
 	const msg = "Failed to populate object from binary data!\n"
 	if len(data) == 0 {
-		debug.LogError(msg, "Bytes data is empty.")
+		log.Println(msg, "Bytes data is empty.")
 		return
 	}
 	var buf = bytes.NewBuffer(DecompressZLIB(data))
 	var dec = gob.NewDecoder(buf)
 	var err = dec.Decode(objectPointer)
 	if err != nil {
-		debug.LogError(msg, err)
+		log.Println(msg, err)
 	}
 }
 
 func ToJSON(objectPointer any) string {
 	var data, err = json.MarshalIndent(objectPointer, "", "  ") // pretty print
 	if err != nil {
-		debug.LogError("Failed to create JSON data from object!\n", err)
+		log.Println("Failed to create JSON data from object!\n", err)
 		return ""
 	}
 	return string(data)
@@ -89,7 +89,7 @@ func ToJSON(objectPointer any) string {
 func ToXML(objectPointer any) string {
 	var data, err = xml.MarshalIndent(objectPointer, "", "  ") // pretty print
 	if err != nil {
-		debug.LogError("Failed to create XML data from object!\n", err)
+		log.Println("Failed to create XML data from object!\n", err)
 		return ""
 	}
 	return string(data)
@@ -97,7 +97,7 @@ func ToXML(objectPointer any) string {
 func ToYAML(objectPointer any) string {
 	var data, err = yaml.Marshal(objectPointer)
 	if err != nil {
-		debug.LogError("Failed to create YAML data from object!\n", err)
+		log.Println("Failed to create YAML data from object!\n", err)
 		return ""
 	}
 	return string(data)
@@ -118,7 +118,7 @@ func ToBytes(objectPointer any, registerTypes ...any) []byte {
 	var buf bytes.Buffer
 	var err = gob.NewEncoder(&buf).Encode(objectPointer)
 	if err != nil {
-		debug.LogError("Failed to convert object into binary data!\n", err)
+		log.Println("Failed to convert object into binary data!\n", err)
 		return nil
 	}
 	return CompressZLIB(buf.Bytes())
@@ -131,7 +131,7 @@ func CompressZLIB(data []byte) []byte {
 	var err2 = gw.Close()
 
 	if err != nil || err2 != nil {
-		debug.LogError("Failed to compress data with ZLIB!\n", err)
+		log.Println("Failed to compress data with ZLIB!\n", err)
 		return data
 	}
 	return buf.Bytes()
@@ -143,7 +143,7 @@ func CompressGZIP(data []byte) []byte {
 	var err2 = gw.Close()
 
 	if err != nil || err2 != nil {
-		debug.LogError("Failed to compress data with GZIP!\n", err)
+		log.Println("Failed to compress data with GZIP!\n", err)
 		return data
 	}
 	return buf.Bytes()
@@ -155,7 +155,7 @@ func DecompressZLIB(data []byte) []byte {
 	var err3 = gr.Close()
 
 	if err != nil || err2 != nil || err3 != nil {
-		debug.LogError("Failed to decompress data with ZLIB!\n", err)
+		log.Println("Failed to decompress data with ZLIB!\n", err)
 		return data
 	}
 	return result
@@ -168,7 +168,7 @@ func DecompressGZIP(data []byte) []byte {
 	var err3 = gr.Close()
 
 	if err != nil || err2 != nil || err3 != nil {
-		debug.LogError("Failed to compress data with GZIP!\n", err)
+		log.Println("Failed to compress data with GZIP!\n", err)
 		return data
 	}
 	return result
