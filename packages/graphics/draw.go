@@ -1,6 +1,7 @@
 package graphics
 
 import (
+	"big-black-box/packages/assets"
 	"big-black-box/packages/debug"
 	"big-black-box/packages/geometry"
 	"big-black-box/packages/internal"
@@ -37,5 +38,14 @@ func (v View) DrawDebugInfo() {
 			String(debug.MemoryUsage()).
 			End(),
 		Color: palette.White,
+	})
+}
+
+func (v View) DrawText(font assets.Font) {
+	internal.Queue(internal.LayerDefault, internal.DrawItem{
+		Kind:  internal.KindText,
+		Shape: internal.Shape{X: 5, Y: 5},
+		Color: palette.White,
+		Font:  1,
 	})
 }

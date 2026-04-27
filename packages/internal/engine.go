@@ -38,6 +38,8 @@ type Data struct {
 var State Data
 var GameLoop func()
 
+var Fonts []*ebiten.Image = make([]*ebiten.Image, 0, 64)
+
 //=================================================================
 
 func Init(gameLoop func()) {

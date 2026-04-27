@@ -12,15 +12,19 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
+type Font byte
+type Texture uint16
+
 type Layer byte
 type Kind byte
 
-const KindNone, KindShape, KindText = 0, 1, 2
+const KindNone, KindShape, KindSprite, KindText = 0, 1, 2, 3
 
 type DrawItem struct {
 	Kind                Kind
 	Shape               Shape
-	TextureID           int
+	Texture             Texture
+	Font                Font
 	Color, OutlineColor uint
 	OutlineSize, Z      float32
 	Text                string
@@ -92,7 +96,12 @@ func drawItem(screen *ebiten.Image, item DrawItem) {
 		op.ColorScale.ScaleWithColor(col.RGBA{R: r, G: g, B: b, A: a})
 
 		screen.DrawRectShader(scrSize.X, scrSize.Y, shader, op)
+	case KindSprite:
 	case KindText:
-		ebitenutil.DebugPrintAt(screen, item.Text, int(item.Shape.X), int(item.Shape.Y))
+		if item.Font == 0 {
+			ebitenutil.DebugPrintAt(screen, item.Text, int(item.Shape.X), int(item.Shape.Y))
+		} else {
+			screen.DrawImage(Fonts[item.Font-1], nil)
+		}
 	}
 }

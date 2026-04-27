@@ -35,16 +35,16 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
     innerEdge := max(0.0, OutlineSize)
     outerEdge := max(0.0, -OutlineSize)
     outlineAlpha := smoothstep(-0.7, 0.7, d+innerEdge) * (1.0 - smoothstep(-0.7, 0.7, d-outerEdge))
-
+    
     // Premultiply fill: Ebitengine's blend expects premultiplied alpha output.
     // color from ColorScale is straight alpha, so we must multiply rgb by alpha here.
     fillA := color.a * shapeAlpha
     result := vec4(color.rgb * fillA, fillA)
-
+    
     // Composite outline on top (also premultiplied)
     outColor := vec3(OutlineColorR, OutlineColorG, OutlineColorB)
     outA := OutlineColorA * outlineAlpha
     result = result*(1.0-outA) + vec4(outColor.rgb*outA, outA)
-
+    
     return result
 }

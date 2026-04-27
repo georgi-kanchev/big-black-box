@@ -1,6 +1,7 @@
 package main
 
 import (
+	"big-black-box/packages/assets"
 	"big-black-box/packages/engine"
 	"big-black-box/packages/geometry"
 	"big-black-box/packages/graphics"
@@ -10,11 +11,6 @@ import (
 	"big-black-box/packages/utility/number"
 	"big-black-box/packages/utility/time"
 )
-
-const core = " .,;:!?¡¿\"'()[]{}<>-/\\@#$%^&*_+=|~`" + "0123456789" + "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-const latin = "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÑÒÓÔÕÖØÙÚÛÜÝßŒŠŽŁŃŚŹŻĆČĐŐŰàáâãäåæçèéêëìíîïñòóôõöøùúûüýÿœšžłńśźżćčđőűẞ"
-const cyrillic = "АБВГДЕЁЖЗИЙКЛМНОПРСТУΦΧЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюяҐЄІЇґєії"
-const all = core + latin + cyrillic
 
 func main() {
 	const offset = 250.0
@@ -27,6 +23,8 @@ func main() {
 		geometry.NewRectangle(750+offset, 250, 150, 150, 45),
 	}
 	var rotSpeeds = []float32{0, 0.3, -0.2}
+
+	var font = assets.LoadFont("../tools/sdf-font-generator/results/font.png", "../tools/sdf-font-generator/results/font.xml")
 
 	engine.Run(func() {
 		const speed = 5.0
@@ -77,6 +75,7 @@ func main() {
 		if !number.IsNaN(hitX) {
 			view.DrawShape(geometry.NewCircle(hitX, hitY, 6))
 		}
-		view.DrawDebugInfo()
+		// view.DrawDebugInfo()
+		view.DrawText(font)
 	})
 }
