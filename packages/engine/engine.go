@@ -3,6 +3,7 @@ package engine
 import (
 	"big-black-box/packages/internal"
 	"big-black-box/packages/window"
+	"big-black-box/packages/window/mode"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -15,6 +16,7 @@ func Run(gameLoop func()) {
 	window.SetTitle("game")
 	window.SetVsync(true)
 	window.SetPixelScale(2)
+	window.SetMode(mode.Maximized)
 	SetTargetTickRate(60)
 
 	var err = ebiten.RunGame(&internal.State)

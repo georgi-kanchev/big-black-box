@@ -41,11 +41,22 @@ func (v View) DrawDebugInfo() {
 	})
 }
 
-func (v View) DrawText(font assets.Font) {
+func (v View) DrawImage(shape geometry.Shape, image assets.Image) {
+	internal.Queue(internal.LayerDefault, internal.DrawItem{
+		Kind:         internal.KindImage,
+		Shape:        internal.Shape(shape),
+		Color:        0,
+		Image:        internal.Image(image),
+		OutlineSize:  20,
+		OutlineColor: palette.Red,
+	})
+}
+
+func (v View) DrawText(shape geometry.Shape, font assets.Font) {
 	internal.Queue(internal.LayerDefault, internal.DrawItem{
 		Kind:  internal.KindText,
-		Shape: internal.Shape{X: 5, Y: 5},
+		Shape: internal.Shape(shape),
 		Color: palette.White,
-		Font:  1,
+		Font:  internal.Font(font),
 	})
 }

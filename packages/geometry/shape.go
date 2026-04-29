@@ -57,7 +57,7 @@ func (s Shape) DistanceToPoint(x, y float32) float32 {
 	var ly = px*sinR + py*cosR
 
 	var hx, hy = s.Width * 0.5, s.Height * 0.5
-	var r = s.Roundness * min(hx, hy)
+	var r = s.roundness() * min(hx, hy)
 	var qx = number.Absolute(lx) - (hx - r)
 	var qy = number.Absolute(ly) - (hy - r)
 	return number.SquareRoot(max(qx, 0)*max(qx, 0)+max(qy, 0)*max(qy, 0)) + min(max(qx, qy), 0) - r
@@ -74,7 +74,7 @@ func (s Shape) ClosestPointToEdge(x, y float32) (edgeX, edgeY float32) {
 	var ly = px*sinR + py*cosR
 
 	var hx, hy = s.Width * 0.5, s.Height * 0.5
-	var r = s.Roundness * min(hx, hy)
+	var r = s.roundness() * min(hx, hy)
 	var cx = max(-(hx - r), min(hx-r, lx))
 	var cy = max(-(hy - r), min(hy-r, ly))
 
@@ -128,7 +128,7 @@ func (s Shape) Bounds() (minX, minY, maxX, maxY float32) {
 	var sinR, cosR = internal.SinCos(s.Angle)
 	sinR, cosR = number.Absolute(sinR), number.Absolute(cosR)
 	var hx, hy = s.Width * 0.5, s.Height * 0.5
-	var r = s.Roundness * min(hx, hy)
+	var r = s.roundness() * min(hx, hy)
 	var extentX = (hx-r)*cosR + (hy-r)*sinR + r
 	var extentY = (hx-r)*sinR + (hy-r)*cosR + r
 	return s.X - extentX, s.Y - extentY, s.X + extentX, s.Y + extentY
@@ -269,7 +269,7 @@ func (s Shape) Collide(other Shape) Shape {
 
 func (s Shape) support(ax0, ax1, cosR, sinR float32) float32 {
 	var hx, hy = s.Width * 0.5, s.Height * 0.5
-	var r = s.Roundness * min(hx, hy)
+	var r = s.roundness() * min(hx, hy)
 	var dX = number.Absolute(ax0*cosR + ax1*sinR)
 	var dY = number.Absolute(-ax0*sinR + ax1*cosR)
 	return (hx-r)*dX + (hy-r)*dY + r
@@ -280,9 +280,13 @@ func (s Shape) nearestInnerBoxPoint(px, py, cosR, sinR float32) (float32, float3
 	var ly = -rx*sinR + ry*cosR
 
 	var hx, hy = s.Width * 0.5, s.Height * 0.5
-	var r = s.Roundness * min(hx, hy)
+	var r = s.roundness() * min(hx, hy)
 	lx = max(-(hx - r), min(hx-r, lx))
 	ly = max(-(hy - r), min(hy-r, ly))
 
 	return s.X + lx*cosR - ly*sinR, s.Y + lx*sinR + ly*cosR
+}
+
+func (s Shape) roundness() float32 {
+	return max(min(s.Roundness, 1), 0)
 }

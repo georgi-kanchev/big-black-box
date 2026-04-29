@@ -24,7 +24,8 @@ func main() {
 	}
 	var rotSpeeds = []float32{0, 0.3, -0.2}
 
-	var font = assets.LoadFont("../tools/sdf-font-generator/results/font.png", "../tools/sdf-font-generator/results/font.xml")
+	// var font = assets.LoadFont("../tools/sdf-font-generator/results/font.png", "../tools/sdf-font-generator/results/font.xml")
+	var img = assets.LoadImage("../tools/sdf-font-generator/results/font.png")
 
 	engine.Run(func() {
 		const speed = 5.0
@@ -53,7 +54,7 @@ func main() {
 			staticShapes[i].Angle += rotSpeeds[i]
 		}
 
-		obstacle.Roundness = number.Sine(time.Running())
+		obstacle.Roundness = (1 + number.Sine(time.Running())) / 2
 
 		player = obstacle.Collide(player)
 
@@ -76,6 +77,6 @@ func main() {
 			view.DrawShape(geometry.NewCircle(hitX, hitY, 6))
 		}
 		// view.DrawDebugInfo()
-		view.DrawText(font)
+		view.DrawImage(geometry.NewRoundedRectangle(500, 500, 512, 200, 0, 0), img)
 	})
 }

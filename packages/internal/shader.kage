@@ -12,39 +12,69 @@ var OutlineColorG float
 var OutlineColorB float
 var OutlineColorA float
 
-func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+// texCoord.x | CenterX, CenterY, BlurX, BlurY | 12 + 12 + 4 + 4 = 32bits
+// texCoord.y | Width, Height, Gamma           | 12 + 12 + 8 = 32bits
+// color.r | Roundess, Rotation, Saturation           | 12 + 12 + 8 = 32bits
+// color.g | Color, Contrast                          | 24 + 8 = 32bits
+// color.b | OutlineColor, Brightness                 | 24 + 8 = 32bits
+// color.a | OutlineSz, Gr, TileSz, GapX, GapY, Align | 8 + 8 + 4 + 4 + 4 + 4 = 32bits
+// custom.w | TileCols, TileRows, LineHeight, CustomBits | 10 + 10 + 8 + 4 = 32bits
+// custom.x | MaskX, MaskY, MaskW(1)                     | 12 + 12 + 8
+// custom.y | TexX, TexY, MaskW(2), MaskH(1)             | 12 + 12 + 4 + 4
+// custom.z | TexW, TexH, MaskH(2)                       | 12 + 12 + 8
+
+// Custom bits:
+//  Texture FlipX 1 bit
+//  Texture FlipY 1 bit
+//  Silhouette 1 bit
+//  WordWrap 1 bit
+
+// 16 tile sizes (4 bits): 8, 12, 16, 24, 32, 40, 48, 64, 80, 96, 128, 144, 160, 192, 240, 256
+
+func Fragment(position vec4, texCoord vec2, color vec4, custom vec4) vec4 {
+    // Local Position
     p := position.xy - vec2(CenterX, CenterY)
-    
     cosR := cos(-Rotation)
     sinR := sin(-Rotation)
-    p = vec2(p.x * cosR - p.y * sinR, p.x * sinR + p.y * cosR)
+    p_rot := vec2(p.x * cosR - p.y * sinR, p.x * sinR + p.y * cosR)
     
+    // Map Screen Position to Texture Position
+    // We calculate where this pixel is relative to the shape, then scale that to the source texture size.
+    localUV := (p_rot / vec2(Width, Height)) + 0.5
+    
+    // Clamp to ensure we don't bleed into other atlas sprites
+    localUV = clamp(localUV, 0.0, 1.0)
+    
+    // imageSrc0Origin() gives the top-left of the image in the atlas
+    // imageSrc0Size() gives the size of the specific sub-image
+    tCoord := imageSrc0Origin() + (localUV * imageSrc0Size())
+    texColor := imageSrc0At(tCoord)
+
+    // SDF Logic
     halfSize := vec2(Width, Height) * 0.5
     maxRadius := min(halfSize.x, halfSize.y)
     currentRadius := Roundness * maxRadius
-    
-    // Calculate the Distance Field
-    q := abs(p) - halfSize + currentRadius
+    q := abs(p_rot) - halfSize + currentRadius
     d := length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - currentRadius
     
-    // Calculate the Fill Mask
+    if Roundness <= 0.0 {
+        d_box_vec := abs(p_rot) - halfSize
+        d = max(d_box_vec.x, d_box_vec.y)
+    }
+
     shapeAlpha := 1.0 - smoothstep(-0.7, 0.7, d)
+    // Outline Logic
+    // Inward: d + size (positive)
+    // Outward: d - size (negative)
+    innerEdge := max(0.0, -OutlineSize)
+    outerEdge := max(0.0, OutlineSize)
     
-    // Calculate the Outline Mask
-    // Positive thickness grows inward (d < 0 region), negative grows outward (d > 0 region).
-    innerEdge := max(0.0, OutlineSize)
-    outerEdge := max(0.0, -OutlineSize)
-    outlineAlpha := smoothstep(-0.7, 0.7, d+innerEdge) * (1.0 - smoothstep(-0.7, 0.7, d-outerEdge))
+    // This creates a ring between (d + inner) and (d - outer)
+    outlineAlpha := smoothstep(-0.7, 0.7, d + innerEdge) * (1.0 - smoothstep(-0.7, 0.7, d - outerEdge))
     
-    // Premultiply fill: Ebitengine's blend expects premultiplied alpha output.
-    // color from ColorScale is straight alpha, so we must multiply rgb by alpha here.
-    fillA := color.a * shapeAlpha
-    result := vec4(color.rgb * fillA, fillA)
-    
-    // Composite outline on top (also premultiplied)
-    outColor := vec3(OutlineColorR, OutlineColorG, OutlineColorB)
+    fillColor := texColor * vec4(1.0, 0.0, 0.0, 1.0) * shapeAlpha
     outA := OutlineColorA * outlineAlpha
-    result = result*(1.0-outA) + vec4(outColor.rgb*outA, outA)
+    outColorPremul := vec4(OutlineColorR * outA, OutlineColorG * outA, OutlineColorB * outA, outA)
     
-    return result
+    return outColorPremul + fillColor * (1.0 - outA)
 }

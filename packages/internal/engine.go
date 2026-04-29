@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"image/color"
+
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -39,6 +41,9 @@ var State Data
 var GameLoop func()
 
 var Fonts []*ebiten.Image = make([]*ebiten.Image, 0, 64)
+var Images []*ebiten.Image = make([]*ebiten.Image, 0, 64)
+
+var White1x1 = ebiten.NewImage(1, 1)
 
 //=================================================================
 
@@ -46,6 +51,7 @@ func Init(gameLoop func()) {
 	GameLoop = gameLoop
 	SinCosCache()
 	ShaderCache()
+	White1x1.Set(0, 0, color.White)
 
 	ebiten.SetWindowSize(1600, 900)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
