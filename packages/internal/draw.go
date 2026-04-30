@@ -16,7 +16,7 @@ type Image uint16
 type Layer byte
 type Kind byte
 
-const KindNone, KindShape, KindImage, KindText = 0, 1, 2, 3
+const KindNone, KindShape, KindImage, KindText, KindTilemap = 0, 1, 2, 3, 4
 
 type DrawItem struct {
 	Kind  Kind
@@ -27,6 +27,8 @@ type DrawItem struct {
 	Color, OutlineColor uint
 	OutlineSize, Z      float32
 	Text                string
+
+	ImageX, ImageY, ImageWidth, ImageHeight float32
 }
 
 const LayerBelow, LayerDefault, LayerAbove Layer = 0, 1, 2
@@ -117,14 +119,10 @@ func drawItem(screen *ebiten.Image, item DrawItem) {
 		vertices[i].ColorA = packColor(item.Color)
 	}
 
-	// Top-Left
-	vertices[0].DstX, vertices[0].DstY = x+x0, y+y0
-	// Top-Right
-	vertices[1].DstX, vertices[1].DstY = x+x0+wx, y+y0+wy
-	// Bottom-Left
-	vertices[2].DstX, vertices[2].DstY = x+x0+hx, y+y0+hy
-	// Bottom-Right
-	vertices[3].DstX, vertices[3].DstY = x+x0+wx+hx, y+y0+wy+hy
+	vertices[0].DstX, vertices[0].DstY = x+x0, y+y0             // Top-Left
+	vertices[1].DstX, vertices[1].DstY = x+x0+wx, y+y0+wy       // Top-Right
+	vertices[2].DstX, vertices[2].DstY = x+x0+hx, y+y0+hy       // Bottom-Left
+	vertices[3].DstX, vertices[3].DstY = x+x0+wx+hx, y+y0+wy+hy // Bottom-Right
 
 	switch item.Kind {
 	case KindShape:
@@ -136,6 +134,7 @@ func drawItem(screen *ebiten.Image, item DrawItem) {
 			vertices[i].Custom3 = 0
 		}
 	case KindImage:
+		item.ImageX = 0.5
 		op.Images[0] = Images[item.Image-1]
 		for i := range vertices {
 			vertices[i].Custom0 = item.Shape.Roundness
@@ -158,22 +157,32 @@ func drawItem(screen *ebiten.Image, item DrawItem) {
 
 	var imgW, imgH = float32(op.Images[0].Bounds().Dx()), float32(op.Images[0].Bounds().Dy())
 
-	// 3. Calculate UV padding proportionally.
-	// This scales the pixel padding into texture-space coordinates.
+	// Resolve normalized sub-region (default 0,0,0,0 → 0,0,1,1 = full image).
+	var subW, subH = item.ImageWidth, item.ImageHeight
+	if subW == 0 {
+		subW = 1
+	}
+	if subH == 0 {
+		subH = 1
+	}
+	var srcX, srcY = item.ImageX * imgW, item.ImageY * imgH
+	var srcW, srcH = subW * imgW, subH * imgH
+
+	// Calculate UV padding proportionally to the sub-region size.
 	var padU, padV float32 = 0, 0
 	if origW > 0 {
-		padU = pad * (imgW / origW)
+		padU = pad * (srcW / origW)
 	}
 	if origH > 0 {
-		padV = pad * (imgH / origH)
+		padV = pad * (srcH / origH)
 	}
 
-	// Assign expanded UVs. The shader will sample outside the image bounds in the padding area,
+	// Assign expanded UVs. The shader will sample outside the sub-region in the padding area,
 	// but shapeAlpha = 0 will mask it out, allowing only the custom outline color to show.
-	vertices[0].SrcX, vertices[0].SrcY = -padU, -padV
-	vertices[1].SrcX, vertices[1].SrcY = imgW+padU, -padV
-	vertices[2].SrcX, vertices[2].SrcY = -padU, imgH+padV
-	vertices[3].SrcX, vertices[3].SrcY = imgW+padU, imgH+padV
+	vertices[0].SrcX, vertices[0].SrcY = srcX-padU, srcY-padV
+	vertices[1].SrcX, vertices[1].SrcY = srcX+srcW+padU, srcY-padV
+	vertices[2].SrcX, vertices[2].SrcY = srcX-padU, srcY+srcH+padV
+	vertices[3].SrcX, vertices[3].SrcY = srcX+srcW+padU, srcY+srcH+padV
 
 	screen.DrawTrianglesShader(vertices, indices, shader, op)
 }
