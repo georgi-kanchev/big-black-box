@@ -27,6 +27,7 @@ func main() {
 	// var font = assets.LoadFont("../tools/sdf-font-generator/results/font.png", "../tools/sdf-font-generator/results/font.xml")
 	var img = assets.LoadImage("../tools/sdf-font-generator/results/font.png")
 
+	var a float32
 	engine.Run(func() {
 		const speed = 5.0
 		if keyboard.IsPressed(key.ArrowLeft) || keyboard.IsPressed(key.A) {
@@ -76,7 +77,6 @@ func main() {
 		if !number.IsNaN(hitX) {
 			view.DrawShape(geometry.NewCircle(hitX, hitY, 6))
 		}
-		// view.DrawDebugInfo()
-		view.DrawImage(geometry.NewRoundedRectangle(500, 500, 512, 200, 0, 0), img)
+		view.DrawImage(geometry.NewRoundedRectangle(300, 300, 200, 200, a, 0), img)
 	})
 }

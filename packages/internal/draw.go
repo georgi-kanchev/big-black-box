@@ -76,44 +76,104 @@ var op = &ebiten.DrawTrianglesShaderOptions{Uniforms: map[string]any{}}
 var vertices = make([]ebiten.Vertex, 4)
 var indices = []uint16{0, 1, 2, 1, 2, 3}
 
+// packColor packs an RGBA uint into a 24-bit float (6 bits per channel).
+// Layout: R6[23:18] G6[17:12] B6[11:6] A6[5:0].
+func packColor(c uint) float32 {
+	r, g, b, a := color.Channels(c)
+	return float32(uint32(r>>2)<<18 | uint32(g>>2)<<12 | uint32(b>>2)<<6 | uint32(a>>2))
+}
+
+// packTextLayout packs a 3-bit align value (0–7) and a 1-bit wordwrap flag.
+// Layout: WordWrap[3] Align[2:0].
+func packTextLayout(align byte, wordWrap bool) float32 {
+	v := uint32(align & 0x7)
+	if wordWrap {
+		v |= 1 << 3
+	}
+	return float32(v)
+}
+
 func drawItem(screen *ebiten.Image, item DrawItem) {
-	var br, bg, bb, ba = color.Channels(item.Color)
-	var r, g, b, a = float32(br) / 255, float32(bg) / 255, float32(bb) / 255, float32(ba) / 255
-	var scrSize = screen.Bounds().Size()
-	var or, og, ob, oa = color.Channels(item.OutlineColor)
+	const pivotX, pivotY float32 = 0.5, 0.5
+	var pad float32 = 1.5
+	if item.OutlineSize > 0 {
+		pad += item.OutlineSize
+	}
+
+	var origW, origH = item.Shape.Width, item.Shape.Height
+	var w, h = origW + (pad * 2), origH + (pad * 2)
+	var x, y = item.Shape.X, item.Shape.Y
+
+	var px, py = w * pivotX, h * pivotY
+	var sin, cos = SinCos(item.Shape.Angle)
+	var wx, wy = w * cos, w * sin
+	var hx, hy = -h * sin, h * cos
+	var x0, y0 = -px*cos + py*sin, -px*sin - py*cos
 
 	for i := range vertices {
-		vertices[i].ColorR, vertices[i].ColorG, vertices[i].ColorB, vertices[i].ColorA = r, g, b, a
+		vertices[i].ColorR = origW
+		vertices[i].ColorG = origH
+		vertices[i].ColorB = angle.ToRadians(item.Shape.Angle)
+		vertices[i].ColorA = packColor(item.Color)
 	}
-	vertices[1].DstX = float32(scrSize.X)
-	vertices[2].DstY = float32(scrSize.Y)
-	vertices[3].DstX = float32(scrSize.X)
-	vertices[3].DstY = float32(scrSize.Y)
 
-	op.Uniforms["CenterX"] = item.Shape.X
-	op.Uniforms["CenterY"] = item.Shape.Y
-	op.Uniforms["Width"] = item.Shape.Width
-	op.Uniforms["Height"] = item.Shape.Height
-	op.Uniforms["Rotation"] = angle.ToRadians(item.Shape.Angle)
-	op.Uniforms["Roundness"] = max(min(item.Shape.Roundness, 1), 0)
-	op.Uniforms["OutlineSize"] = item.OutlineSize
-	op.Uniforms["OutlineColorR"] = float32(or) / 255
-	op.Uniforms["OutlineColorG"] = float32(og) / 255
-	op.Uniforms["OutlineColorB"] = float32(ob) / 255
-	op.Uniforms["OutlineColorA"] = float32(oa) / 255
+	// Top-Left
+	vertices[0].DstX, vertices[0].DstY = x+x0, y+y0
+	// Top-Right
+	vertices[1].DstX, vertices[1].DstY = x+x0+wx, y+y0+wy
+	// Bottom-Left
+	vertices[2].DstX, vertices[2].DstY = x+x0+hx, y+y0+hy
+	// Bottom-Right
+	vertices[3].DstX, vertices[3].DstY = x+x0+wx+hx, y+y0+wy+hy
 
 	switch item.Kind {
 	case KindShape:
 		op.Images[0] = White1x1
-
+		for i := range vertices {
+			vertices[i].Custom0 = item.Shape.Roundness
+			vertices[i].Custom1 = packColor(item.OutlineColor)
+			vertices[i].Custom2 = item.OutlineSize
+			vertices[i].Custom3 = 0
+		}
 	case KindImage:
 		op.Images[0] = Images[item.Image-1]
+		for i := range vertices {
+			vertices[i].Custom0 = item.Shape.Roundness
+			vertices[i].Custom1 = packColor(item.OutlineColor)
+			vertices[i].Custom2 = item.OutlineSize
+			vertices[i].Custom3 = 0
+		}
 	case KindText:
 		if item.Font == 0 {
 			ebitenutil.DebugPrintAt(screen, item.Text, int(item.Shape.X), int(item.Shape.Y))
-		} else {
-			// screen.DrawImage(Fonts[item.Font-1], nil)
+			return
+		}
+		for i := range vertices {
+			vertices[i].Custom0 = 0 // SymbolGap
+			vertices[i].Custom1 = 0 // LineGap
+			vertices[i].Custom2 = 0 // LineHeight
+			vertices[i].Custom3 = packTextLayout(0, false)
 		}
 	}
+
+	var imgW, imgH = float32(op.Images[0].Bounds().Dx()), float32(op.Images[0].Bounds().Dy())
+
+	// 3. Calculate UV padding proportionally.
+	// This scales the pixel padding into texture-space coordinates.
+	var padU, padV float32 = 0, 0
+	if origW > 0 {
+		padU = pad * (imgW / origW)
+	}
+	if origH > 0 {
+		padV = pad * (imgH / origH)
+	}
+
+	// Assign expanded UVs. The shader will sample outside the image bounds in the padding area,
+	// but shapeAlpha = 0 will mask it out, allowing only the custom outline color to show.
+	vertices[0].SrcX, vertices[0].SrcY = -padU, -padV
+	vertices[1].SrcX, vertices[1].SrcY = imgW+padU, -padV
+	vertices[2].SrcX, vertices[2].SrcY = -padU, imgH+padV
+	vertices[3].SrcX, vertices[3].SrcY = imgW+padU, imgH+padV
+
 	screen.DrawTrianglesShader(vertices, indices, shader, op)
 }

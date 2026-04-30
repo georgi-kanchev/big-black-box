@@ -13,9 +13,11 @@ import (
 
 func (v View) DrawShape(shape geometry.Shape) {
 	internal.Queue(internal.LayerDefault, internal.DrawItem{
-		Kind:  internal.KindShape,
-		Shape: internal.Shape(shape),
-		Color: palette.White,
+		Kind:         internal.KindShape,
+		Shape:        internal.Shape(shape),
+		Color:        palette.White,
+		OutlineSize:  20,
+		OutlineColor: palette.Green,
 	})
 }
 
@@ -45,7 +47,7 @@ func (v View) DrawImage(shape geometry.Shape, image assets.Image) {
 	internal.Queue(internal.LayerDefault, internal.DrawItem{
 		Kind:         internal.KindImage,
 		Shape:        internal.Shape(shape),
-		Color:        0,
+		Color:        palette.White,
 		Image:        internal.Image(image),
 		OutlineSize:  20,
 		OutlineColor: palette.Red,

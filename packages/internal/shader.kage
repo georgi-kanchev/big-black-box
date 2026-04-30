@@ -1,80 +1,85 @@
+//kage:unit texels
 package main
 
-var CenterX float
-var CenterY float
-var Width float
-var Height float
-var Roundness float
-var Rotation float 
-var OutlineSize float
-var OutlineColorR float
-var OutlineColorG float
-var OutlineColorB float
-var OutlineColorA float
+// Uniforms:
+//  ViewX, ViewY, ViewWidth, ViewHight
+//  BlurX, BlurY
+//  Gamma, Saturation, Brightness, Contrast, Grayscale
 
-// texCoord.x | CenterX, CenterY, BlurX, BlurY | 12 + 12 + 4 + 4 = 32bits
-// texCoord.y | Width, Height, Gamma           | 12 + 12 + 8 = 32bits
-// color.r | Roundess, Rotation, Saturation           | 12 + 12 + 8 = 32bits
-// color.g | Color, Contrast                          | 24 + 8 = 32bits
-// color.b | OutlineColor, Brightness                 | 24 + 8 = 32bits
-// color.a | OutlineSz, Gr, TileSz, GapX, GapY, Align | 8 + 8 + 4 + 4 + 4 + 4 = 32bits
-// custom.w | TileCols, TileRows, LineHeight, CustomBits | 10 + 10 + 8 + 4 = 32bits
-// custom.x | MaskX, MaskY, MaskW(1)                     | 12 + 12 + 8
-// custom.y | TexX, TexY, MaskW(2), MaskH(1)             | 12 + 12 + 4 + 4
-// custom.z | TexW, TexH, MaskH(2)                       | 12 + 12 + 8
+// texCoord.x | CenterX
+// texCoord.y | CenterY
+// color.r    | Width
+// color.g    | Height
+// color.b    | Rotation
+// color.a    | Tint         (packed RGBA, 6 bits per channel)
 
-// Custom bits:
-//  Texture FlipX 1 bit
-//  Texture FlipY 1 bit
-//  Silhouette 1 bit
-//  WordWrap 1 bit
+// Shape/Image:
+//  custom.x | Roundness
+//  custom.y | OutlineColor  (packed RGBA, 6 bits per channel)
+//  custom.z | OutlineSize
+//  custom.w | -
 
-// 16 tile sizes (4 bits): 8, 12, 16, 24, 32, 40, 48, 64, 80, 96, 128, 144, 160, 192, 240, 256
+// Text:
+//  custom.x | SymbolGap
+//  custom.y | LineGap
+//  custom.z | LineHeight
+//  custom.w | Align (bits [2:0], 0-7) + WordWrap (bit [3])
+
+// TileMap:
+//  custom.x | TileSize
+//  custom.y | TileRows
+//  custom.z | TileColumns
+//  custom.w | -
+
+// unpackColor decodes a 24-bit packed float into a normalized vec4.
+// Packing layout: R6[23:18] G6[17:12] B6[11:6] A6[5:0], 6 bits per channel.
+func unpackColor(packed float) vec4 {
+	r := floor(packed / 262144.0)
+	g := floor(mod(packed, 262144.0) / 4096.0)
+	b := floor(mod(packed, 4096.0) / 64.0)
+	a := mod(packed, 64.0)
+	return vec4(r, g, b, a) / 63.0
+}
 
 func Fragment(position vec4, texCoord vec2, color vec4, custom vec4) vec4 {
-    // Local Position
-    p := position.xy - vec2(CenterX, CenterY)
-    cosR := cos(-Rotation)
-    sinR := sin(-Rotation)
-    p_rot := vec2(p.x * cosR - p.y * sinR, p.x * sinR + p.y * cosR)
-    
-    // Map Screen Position to Texture Position
-    // We calculate where this pixel is relative to the shape, then scale that to the source texture size.
-    localUV := (p_rot / vec2(Width, Height)) + 0.5
-    
-    // Clamp to ensure we don't bleed into other atlas sprites
-    localUV = clamp(localUV, 0.0, 1.0)
-    
-    // imageSrc0Origin() gives the top-left of the image in the atlas
-    // imageSrc0Size() gives the size of the specific sub-image
-    tCoord := imageSrc0Origin() + (localUV * imageSrc0Size())
-    texColor := imageSrc0At(tCoord)
-
-    // SDF Logic
-    halfSize := vec2(Width, Height) * 0.5
+    width, height := color.r, color.g
+    fillColor := unpackColor(color.a)
+    roundness, outlineSize := custom.x, custom.z
+    outlineColor := unpackColor(custom.y)
+    origin, size := imageSrc0Origin(), imageSrc0Size()
+    uv := (texCoord - origin) / size 
+    halfSize := vec2(width, height) * 0.5
+    pLocal := (uv - 0.5) * vec2(width, height)
     maxRadius := min(halfSize.x, halfSize.y)
-    currentRadius := Roundness * maxRadius
-    q := abs(p_rot) - halfSize + currentRadius
-    d := length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - currentRadius
-    
-    if Roundness <= 0.0 {
-        d_box_vec := abs(p_rot) - halfSize
-        d = max(d_box_vec.x, d_box_vec.y)
-    }
+    radius := abs(roundness) * maxRadius
+    q := abs(pLocal) - halfSize + radius
+    dShape := length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius
 
-    shapeAlpha := 1.0 - smoothstep(-0.7, 0.7, d)
-    // Outline Logic
-    // Inward: d + size (positive)
-    // Outward: d - size (negative)
-    innerEdge := max(0.0, -OutlineSize)
-    outerEdge := max(0.0, OutlineSize)
+    if roundness < 0.0 {
+        dShape = max(radius - length(max(q, 0.0)), max(abs(pLocal).x - halfSize.x, abs(pLocal).y - halfSize.y))
+    }
     
-    // This creates a ring between (d + inner) and (d - outer)
-    outlineAlpha := smoothstep(-0.7, 0.7, d + innerEdge) * (1.0 - smoothstep(-0.7, 0.7, d - outerEdge))
+    dOut := dShape
+    if outlineSize != 0.0 {
+        hOut := max(halfSize + outlineSize, 0.0)
+        rOut := abs(roundness) * min(hOut.x, hOut.y)
+        qOut := abs(pLocal) - hOut + rOut
+        dOut = length(max(qOut, 0.0)) + min(max(qOut.x, qOut.y), 0.0) - rOut
+        if roundness < 0.0 {
+            dOut = max(rOut - length(max(qOut, 0.0)), max(abs(pLocal).x - hOut.x, abs(pLocal).y - hOut.y))
+        }
+    }
     
-    fillColor := texColor * vec4(1.0, 0.0, 0.0, 1.0) * shapeAlpha
-    outA := OutlineColorA * outlineAlpha
-    outColorPremul := vec4(OutlineColorR * outA, OutlineColorG * outA, OutlineColorB * outA, outA)
+    sShape := step(dShape, 0.0)
+    sOut := step(dOut, 0.0)
+
+    totalAlpha, fillAlpha := sShape, sShape
+    if outlineSize > 0.0 {
+        totalAlpha, fillAlpha = sOut, sShape
+    } else if outlineSize < 0.0 {
+        totalAlpha, fillAlpha = sShape, sOut
+    }
     
-    return outColorPremul + fillColor * (1.0 - outA)
+    finalFillColor := imageSrc0At(texCoord) * fillColor
+    return mix(outlineColor, finalFillColor, fillAlpha) * totalAlpha
 }
