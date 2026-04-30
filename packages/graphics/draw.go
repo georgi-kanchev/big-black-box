@@ -16,7 +16,7 @@ func (v View) DrawShape(shape geometry.Shape) {
 		Kind:         internal.KindShape,
 		Shape:        internal.Shape(shape),
 		Color:        palette.White,
-		OutlineSize:  20,
+		OutlineSize:  1,
 		OutlineColor: palette.Green,
 	})
 }
@@ -49,7 +49,7 @@ func (v View) DrawImage(shape geometry.Shape, image assets.Image) {
 		Shape:        internal.Shape(shape),
 		Color:        palette.White,
 		Image:        internal.Image(image),
-		OutlineSize:  20,
+		OutlineSize:  1,
 		OutlineColor: palette.Red,
 	})
 }

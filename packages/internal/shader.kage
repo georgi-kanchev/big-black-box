@@ -17,19 +17,19 @@ package main
 //  custom.x | Roundness
 //  custom.y | OutlineColor  (packed RGBA, 6 bits per channel)
 //  custom.z | OutlineSize
-//  custom.w | Kind (0-7)
+//  custom.w | Kind          Layout: Kind[2:0]
 
 // Text:
 //  custom.x | SymbolGap
 //  custom.y | LineGap
 //  custom.z | LineHeight
-//  custom.w | Kind (0-7) + Align (0-7) + WordWrap (0-1)
+//  custom.w | Kind + WordWrap + Align  Layout: Align[6:4] WordWrap[3] Kind[2:0]
 
 // Tilemap:
 //  custom.x | TileSize
 //  custom.y | TileRows
 //  custom.z | TileColumns
-//  custom.w | Kind (0-7)
+//  custom.w | Kind          Layout: Kind[2:0]
 
 // unpackColor decodes a 24-bit packed float into a normalized vec4.
 // Packing layout: R6[23:18] G6[17:12] B6[11:6] A6[5:0], 6 bits per channel.

@@ -85,13 +85,14 @@ func packColor(c uint) float32 {
 	return float32(uint32(r>>2)<<18 | uint32(g>>2)<<12 | uint32(b>>2)<<6 | uint32(a>>2))
 }
 
-// packTextLayout packs a 3-bit align value (0–7) and a 1-bit wordwrap flag.
-// Layout: WordWrap[3] Align[2:0].
-func packTextLayout(align byte, wordWrap bool) float32 {
-	v := uint32(align & 0x7)
+// packTextLayout packs kind (0–7), wordwrap, and align (0–7) into custom.w.
+// Layout: Align[6:4] WordWrap[3] Kind[2:0].
+func packTextLayout(kind Kind, align byte, wordWrap bool) float32 {
+	v := uint32(kind & 0x7)
 	if wordWrap {
 		v |= 1 << 3
 	}
+	v |= uint32(align&0x7) << 4
 	return float32(v)
 }
 
@@ -131,16 +132,15 @@ func drawItem(screen *ebiten.Image, item DrawItem) {
 			vertices[i].Custom0 = item.Shape.Roundness
 			vertices[i].Custom1 = packColor(item.OutlineColor)
 			vertices[i].Custom2 = item.OutlineSize
-			vertices[i].Custom3 = 0
+			vertices[i].Custom3 = float32(item.Kind)
 		}
 	case KindImage:
-		item.ImageX = 0.5
 		op.Images[0] = Images[item.Image-1]
 		for i := range vertices {
 			vertices[i].Custom0 = item.Shape.Roundness
 			vertices[i].Custom1 = packColor(item.OutlineColor)
 			vertices[i].Custom2 = item.OutlineSize
-			vertices[i].Custom3 = 0
+			vertices[i].Custom3 = float32(item.Kind)
 		}
 	case KindText:
 		if item.Font == 0 {
@@ -151,7 +151,7 @@ func drawItem(screen *ebiten.Image, item DrawItem) {
 			vertices[i].Custom0 = 0 // SymbolGap
 			vertices[i].Custom1 = 0 // LineGap
 			vertices[i].Custom2 = 0 // LineHeight
-			vertices[i].Custom3 = packTextLayout(0, false)
+			vertices[i].Custom3 = packTextLayout(item.Kind, 0, false)
 		}
 	}
 
