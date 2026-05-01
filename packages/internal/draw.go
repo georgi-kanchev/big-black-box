@@ -31,7 +31,8 @@ type DrawItem struct {
 
 	ImageX, ImageY, ImageWidth, ImageHeight float32
 
-	Verts [4]ebiten.Vertex
+	Verts    [8]ebiten.Vertex
+	VertCount int
 }
 
 const LayerBelow, LayerDefault, LayerAbove Layer = 0, 1, 2
@@ -101,9 +102,14 @@ func drawLayer(screen *ebiten.Image, items []DrawItem) {
 		}
 		currentImage = img
 
+		if item.VertCount < 3 {
+			continue
+		}
 		var base = uint16(len(vertices))
-		vertices = append(vertices, item.Verts[:]...)
-		indices = append(indices, base, base+1, base+2, base+1, base+3, base+2)
+		vertices = append(vertices, item.Verts[:item.VertCount]...)
+		for i := 1; i < item.VertCount-1; i++ {
+			indices = append(indices, base, base+uint16(i), base+uint16(i+1))
+		}
 	}
 	flush(screen, currentImage)
 }
