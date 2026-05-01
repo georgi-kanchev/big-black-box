@@ -8,6 +8,7 @@ import (
 )
 
 type View internal.View
+type Area = internal.Area
 
 func NewView() View {
 	return View{Zoom: 1}

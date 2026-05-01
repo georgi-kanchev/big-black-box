@@ -14,7 +14,18 @@ import (
 
 func main() {
 	const offset = 250.0
+
+	// Main view: camera follows player, MaskArea limits visible world to a 600x450 region.
 	var view = graphics.NewView()
+	view.MaskArea = graphics.Area{X: -300, Y: -225, Width: 600, Height: 450}
+
+	// Minimap: overview of the whole playfield in the top-left corner.
+	var minimap = graphics.View{
+		X: 500, Y: 350,
+		Zoom:       0.15,
+		WindowArea: graphics.Area{X: 10, Y: 10, Width: 320, Height: 200},
+	}
+
 	var obstacle = geometry.NewRoundedRectangle(400+offset, 400, 450, 250, 0, 0.5)
 	var player = geometry.NewCircle(100+offset, 100, 40)
 	var staticShapes = []geometry.Shape{
@@ -24,7 +35,6 @@ func main() {
 	}
 	var rotSpeeds = []float32{0, 0.3, -0.2}
 
-	// var font = assets.LoadFont("../tools/sdf-font-generator/results/font.png", "../tools/sdf-font-generator/results/font.xml")
 	var img = assets.LoadImage("font.png")
 
 	var a float32
@@ -54,17 +64,21 @@ func main() {
 		for i := range staticShapes {
 			staticShapes[i].Angle += rotSpeeds[i]
 		}
+		a++
 
 		obstacle.Roundness = (1 + number.Sine(time.Running())) / 2
 
 		player = obstacle.Collide(player)
-
 		for _, s := range staticShapes {
 			player = s.Collide(player)
 		}
 
 		var ang = angle.BetweenPoints(player.X, player.Y, obstacle.X, obstacle.Y)
 		var hitX, hitY = obstacle.Raycast(player.X, player.Y, ang, 1000)
+
+		// Camera: player stays at view center.
+		view.X = player.X
+		view.Y = player.Y
 
 		//=================================================================
 
@@ -73,10 +87,17 @@ func main() {
 			view.DrawShape(s)
 		}
 		view.DrawShape(player)
-
 		if !number.IsNaN(hitX) {
 			view.DrawShape(geometry.NewCircle(hitX, hitY, 6))
 		}
 		view.DrawImage(geometry.NewRoundedRectangle(300, 300, 200, 200, a, 0), img)
+		view.DrawFPS()
+
+		// Minimap: same shapes, clipped to the WindowArea.
+		minimap.DrawShape(obstacle)
+		for _, s := range staticShapes {
+			minimap.DrawShape(s)
+		}
+		minimap.DrawShape(player)
 	})
 }
