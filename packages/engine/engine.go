@@ -15,7 +15,7 @@ func Run(gameLoop func()) {
 	window.SetMonitor(0)
 	window.SetTitle("game")
 	window.SetVsync(true)
-	window.SetPixelScale(2)
+	window.SetPixelScale(1)
 	window.SetMode(mode.Maximized)
 	SetTargetTickRate(60)
 

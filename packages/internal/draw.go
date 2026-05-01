@@ -1,9 +1,8 @@
 package internal
 
 import (
-	"big-black-box/packages/utility/angle"
-	"big-black-box/packages/utility/color"
 	"cmp"
+	"fmt"
 	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -28,7 +27,11 @@ type DrawItem struct {
 	OutlineSize, Z      float32
 	Text                string
 
+	View View
+
 	ImageX, ImageY, ImageWidth, ImageHeight float32
+
+	Verts [4]ebiten.Vertex
 }
 
 const LayerBelow, LayerDefault, LayerAbove Layer = 0, 1, 2
@@ -36,6 +39,11 @@ const LayerBelow, LayerDefault, LayerAbove Layer = 0, 1, 2
 var DrawQueues [3][]DrawItem
 var DrawCounts [3]int
 
+func (d Data) BeforeGameLoop() {
+	for i := range DrawCounts {
+		DrawCounts[i] = 0
+	}
+}
 func Queue(layer Layer, item DrawItem) {
 	if DrawCounts[layer] < len(DrawQueues[layer]) {
 		DrawQueues[layer][DrawCounts[layer]] = item
@@ -44,24 +52,7 @@ func Queue(layer Layer, item DrawItem) {
 	}
 	DrawCounts[layer]++
 }
-
-func (d Data) DrawStart() {
-	for i := range DrawCounts {
-		DrawCounts[i] = 0
-	}
-}
-func (d Data) Draw(screen *ebiten.Image) {
-	for i := range DrawCounts[0] {
-		drawItem(screen, DrawQueues[0][i])
-	}
-	for i := range DrawCounts[1] {
-		drawItem(screen, DrawQueues[1][i])
-	}
-	for i := range DrawCounts[2] {
-		drawItem(screen, DrawQueues[2][i])
-	}
-}
-func (d Data) DrawEnd() {
+func (d Data) AfterGameLoop() {
 	var below = DrawQueues[LayerBelow][:DrawCounts[LayerBelow]]
 	slices.SortStableFunc(below, func(a, b DrawItem) int {
 		return cmp.Compare(a.Z, b.Z)
@@ -71,118 +62,59 @@ func (d Data) DrawEnd() {
 		return cmp.Compare(a.Z, b.Z)
 	})
 }
+func (d Data) Draw(screen *ebiten.Image) {
+	for i := range 3 {
+		drawLayer(screen, DrawQueues[i][:DrawCounts[i]])
+	}
+}
 
 // private ========================================================
 
 var op = &ebiten.DrawTrianglesShaderOptions{Uniforms: map[string]any{}}
-var vertices = make([]ebiten.Vertex, 4)
-var indices = []uint16{0, 1, 2, 1, 2, 3}
+var vertices = make([]ebiten.Vertex, 0, 1024*4)
+var indices = make([]uint16, 0, 1024*6)
 
-// packColor packs an RGBA uint into a 24-bit float (6 bits per channel).
-// Layout: R6[23:18] G6[17:12] B6[11:6] A6[5:0].
-func packColor(c uint) float32 {
-	r, g, b, a := color.Channels(c)
-	return float32(uint32(r>>2)<<18 | uint32(g>>2)<<12 | uint32(b>>2)<<6 | uint32(a>>2))
-}
+func drawLayer(screen *ebiten.Image, items []DrawItem) {
+	vertices = vertices[:0]
+	indices = indices[:0]
+	var currentImage *ebiten.Image
 
-// packTextLayout packs kind (0–7), wordwrap, and align (0–7) into custom.w.
-// Layout: Align[6:4] WordWrap[3] Kind[2:0].
-func packTextLayout(kind Kind, align byte, wordWrap bool) float32 {
-	v := uint32(kind & 0x7)
-	if wordWrap {
-		v |= 1 << 3
-	}
-	v |= uint32(align&0x7) << 4
-	return float32(v)
-}
-
-func drawItem(screen *ebiten.Image, item DrawItem) {
-	const pivotX, pivotY float32 = 0.5, 0.5
-	var pad float32 = 1.5
-	if item.OutlineSize > 0 {
-		pad += item.OutlineSize
-	}
-
-	var origW, origH = item.Shape.Width, item.Shape.Height
-	var w, h = origW + (pad * 2), origH + (pad * 2)
-	var x, y = item.Shape.X, item.Shape.Y
-
-	var px, py = w * pivotX, h * pivotY
-	var sin, cos = SinCos(item.Shape.Angle)
-	var wx, wy = w * cos, w * sin
-	var hx, hy = -h * sin, h * cos
-	var x0, y0 = -px*cos + py*sin, -px*sin - py*cos
-
-	for i := range vertices {
-		vertices[i].ColorR = origW
-		vertices[i].ColorG = origH
-		vertices[i].ColorB = angle.ToRadians(item.Shape.Angle)
-		vertices[i].ColorA = packColor(item.Color)
-	}
-
-	vertices[0].DstX, vertices[0].DstY = x+x0, y+y0             // Top-Left
-	vertices[1].DstX, vertices[1].DstY = x+x0+wx, y+y0+wy       // Top-Right
-	vertices[2].DstX, vertices[2].DstY = x+x0+hx, y+y0+hy       // Bottom-Left
-	vertices[3].DstX, vertices[3].DstY = x+x0+wx+hx, y+y0+wy+hy // Bottom-Right
-
-	switch item.Kind {
-	case KindShape:
-		op.Images[0] = White1x1
-		for i := range vertices {
-			vertices[i].Custom0 = item.Shape.Roundness
-			vertices[i].Custom1 = packColor(item.OutlineColor)
-			vertices[i].Custom2 = item.OutlineSize
-			vertices[i].Custom3 = float32(item.Kind)
-		}
-	case KindImage:
-		op.Images[0] = Images[item.Image-1]
-		for i := range vertices {
-			vertices[i].Custom0 = item.Shape.Roundness
-			vertices[i].Custom1 = packColor(item.OutlineColor)
-			vertices[i].Custom2 = item.OutlineSize
-			vertices[i].Custom3 = float32(item.Kind)
-		}
-	case KindText:
-		if item.Font == 0 {
+	for _, item := range items {
+		if item.Kind == KindText && item.Font == 0 {
+			flush(screen, currentImage)
 			ebitenutil.DebugPrintAt(screen, item.Text, int(item.Shape.X), int(item.Shape.Y))
-			return
+			continue
 		}
-		for i := range vertices {
-			vertices[i].Custom0 = 0 // SymbolGap
-			vertices[i].Custom1 = 0 // LineGap
-			vertices[i].Custom2 = 0 // LineHeight
-			vertices[i].Custom3 = packTextLayout(item.Kind, 0, false)
+
+		var img *ebiten.Image
+		switch item.Kind {
+		case KindImage:
+			img = Images[item.Image-1]
+		case KindText:
+			img = Fonts[item.Font-1]
+		default:
+			img = White1x1
 		}
-	}
 
-	var imgW, imgH = float32(op.Images[0].Bounds().Dx()), float32(op.Images[0].Bounds().Dy())
+		if currentImage != nil && img != currentImage {
+			flush(screen, currentImage)
+		}
+		currentImage = img
 
-	// Resolve normalized sub-region (default 0,0,0,0 → 0,0,1,1 = full image).
-	var subW, subH = item.ImageWidth, item.ImageHeight
-	if subW == 0 {
-		subW = 1
+		var base = uint16(len(vertices))
+		vertices = append(vertices, item.Verts[:]...)
+		indices = append(indices, base, base+1, base+2, base+1, base+3, base+2)
 	}
-	if subH == 0 {
-		subH = 1
-	}
-	var srcX, srcY = item.ImageX * imgW, item.ImageY * imgH
-	var srcW, srcH = subW * imgW, subH * imgH
+	flush(screen, currentImage)
+}
 
-	// Calculate UV padding proportionally to the sub-region size.
-	var padU, padV float32 = 0, 0
-	if origW > 0 {
-		padU = pad * (srcW / origW)
+func flush(screen, currentImage *ebiten.Image) {
+	if len(vertices) == 0 {
+		return
 	}
-	if origH > 0 {
-		padV = pad * (srcH / origH)
-	}
-
-	// Assign expanded UVs. The shader will sample outside the sub-region in the padding area,
-	// but shapeAlpha = 0 will mask it out, allowing only the custom outline color to show.
-	vertices[0].SrcX, vertices[0].SrcY = srcX-padU, srcY-padV
-	vertices[1].SrcX, vertices[1].SrcY = srcX+srcW+padU, srcY-padV
-	vertices[2].SrcX, vertices[2].SrcY = srcX-padU, srcY+srcH+padV
-	vertices[3].SrcX, vertices[3].SrcY = srcX+srcW+padU, srcY+srcH+padV
-
+	op.Images[0] = currentImage
 	screen.DrawTrianglesShader(vertices, indices, shader, op)
+	vertices = vertices[:0]
+	indices = indices[:0]
+	fmt.Printf("ebiten.Tick(): %v\n", ebiten.Tick())
 }

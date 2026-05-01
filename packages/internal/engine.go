@@ -34,7 +34,6 @@ type Engine struct {
 type Data struct {
 	Engine Engine
 	Window Window
-	Views  [8]View
 }
 
 var State Data
@@ -63,9 +62,9 @@ func (d Data) Update() error {
 	cacheInput()
 	cacheTime()
 
-	d.DrawStart()
+	d.BeforeGameLoop()
 	GameLoop()
-	d.DrawEnd()
+	d.AfterGameLoop()
 	return nil
 }
 func (d Data) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {

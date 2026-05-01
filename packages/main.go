@@ -25,7 +25,7 @@ func main() {
 	var rotSpeeds = []float32{0, 0.3, -0.2}
 
 	// var font = assets.LoadFont("../tools/sdf-font-generator/results/font.png", "../tools/sdf-font-generator/results/font.xml")
-	var img = assets.LoadImage("../tools/sdf-font-generator/results/font.png")
+	var img = assets.LoadImage("font.png")
 
 	var a float32
 	engine.Run(func() {
