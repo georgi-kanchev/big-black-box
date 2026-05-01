@@ -128,6 +128,9 @@ func buildVerts(item internal.DrawItem) [4]ebiten.Vertex {
 			verts[i].Custom3 = float32(item.Kind)
 		}
 	case internal.KindText:
+		if item.Font == 0 {
+			return verts
+		}
 		img = internal.Fonts[item.Font-1]
 		for i := range verts {
 			verts[i].Custom0 = 0
@@ -162,6 +165,81 @@ func buildVerts(item internal.DrawItem) [4]ebiten.Vertex {
 	verts[1].SrcX, verts[1].SrcY = srcX+srcW+padU, srcY-padV
 	verts[2].SrcX, verts[2].SrcY = srcX-padU, srcY+srcH+padV
 	verts[3].SrcX, verts[3].SrcY = srcX+srcW+padU, srcY+srcH+padV
+
+	var view = View(item.View)
+
+	// World → view space (position, zoom, angle).
+	var wtv = view.worldToView()
+	for i := range verts {
+		var dx, dy = wtv.Apply(float64(verts[i].DstX), float64(verts[i].DstY))
+		verts[i].DstX, verts[i].DstY = float32(dx), float32(dy)
+	}
+
+	// Clip to MaskArea in view space.
+	if item.View.MaskArea != (internal.Area{}) {
+		verts = cropVerts(verts, item.View.MaskArea)
+	}
+
+	// View → screen space (window area offset).
+	var vts = view.viewToScreen()
+	for i := range verts {
+		var dx, dy = vts.Apply(float64(verts[i].DstX), float64(verts[i].DstY))
+		verts[i].DstX, verts[i].DstY = float32(dx), float32(dy)
+	}
+
+	// Clip to WindowArea in window/screen space.
+	if item.View.WindowArea != (internal.Area{}) {
+		verts = cropVerts(verts, item.View.WindowArea)
+	}
+
+	return verts
+}
+
+// cropVerts clips a quad's bounding box to area, interpolating SrcX/SrcY proportionally.
+// Correct for axis-aligned quads; for rotated quads it operates on the screen-space AABB.
+func cropVerts(verts [4]ebiten.Vertex, area internal.Area) [4]ebiten.Vertex {
+	var dstMinX = min(min(verts[0].DstX, verts[1].DstX), min(verts[2].DstX, verts[3].DstX))
+	var dstMaxX = max(max(verts[0].DstX, verts[1].DstX), max(verts[2].DstX, verts[3].DstX))
+	var dstMinY = min(min(verts[0].DstY, verts[1].DstY), min(verts[2].DstY, verts[3].DstY))
+	var dstMaxY = max(max(verts[0].DstY, verts[1].DstY), max(verts[2].DstY, verts[3].DstY))
+
+	var dstW, dstH = dstMaxX - dstMinX, dstMaxY - dstMinY
+	if dstW <= 0 || dstH <= 0 {
+		return verts
+	}
+
+	var newMinX = max(dstMinX, area.X)
+	var newMaxX = min(dstMaxX, area.X+area.Width)
+	var newMinY = max(dstMinY, area.Y)
+	var newMaxY = min(dstMaxY, area.Y+area.Height)
+
+	if newMinX >= newMaxX || newMinY >= newMaxY {
+		for i := range verts {
+			verts[i].DstX, verts[i].DstY = newMinX, newMinY
+		}
+		return verts
+	}
+
+	var srcMinX = min(min(verts[0].SrcX, verts[1].SrcX), min(verts[2].SrcX, verts[3].SrcX))
+	var srcMaxX = max(max(verts[0].SrcX, verts[1].SrcX), max(verts[2].SrcX, verts[3].SrcX))
+	var srcMinY = min(min(verts[0].SrcY, verts[1].SrcY), min(verts[2].SrcY, verts[3].SrcY))
+	var srcMaxY = max(max(verts[0].SrcY, verts[1].SrcY), max(verts[2].SrcY, verts[3].SrcY))
+
+	var t0x = (newMinX - dstMinX) / dstW
+	var t1x = (newMaxX - dstMinX) / dstW
+	var t0y = (newMinY - dstMinY) / dstH
+	var t1y = (newMaxY - dstMinY) / dstH
+	var srcW, srcH = srcMaxX - srcMinX, srcMaxY - srcMinY
+
+	verts[0].DstX, verts[0].DstY = newMinX, newMinY
+	verts[1].DstX, verts[1].DstY = newMaxX, newMinY
+	verts[2].DstX, verts[2].DstY = newMinX, newMaxY
+	verts[3].DstX, verts[3].DstY = newMaxX, newMaxY
+
+	verts[0].SrcX, verts[0].SrcY = srcMinX+t0x*srcW, srcMinY+t0y*srcH
+	verts[1].SrcX, verts[1].SrcY = srcMinX+t1x*srcW, srcMinY+t0y*srcH
+	verts[2].SrcX, verts[2].SrcY = srcMinX+t0x*srcW, srcMinY+t1y*srcH
+	verts[3].SrcX, verts[3].SrcY = srcMinX+t1x*srcW, srcMinY+t1y*srcH
 
 	return verts
 }
