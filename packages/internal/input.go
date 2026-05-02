@@ -38,7 +38,7 @@ func cacheInput() {
 	var _, scroll = ebiten.Wheel()
 	Scroll = float32(scroll)
 
-	var tps = State.Engine.TargetTickRate
+	var tps = ebiten.TPS()
 	var dt = float32(1.0 / tps)
 	const scrollAccel, scrollDecay = 600.0, -8.0
 

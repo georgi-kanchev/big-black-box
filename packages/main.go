@@ -38,7 +38,7 @@ func main() {
 	var img = assets.LoadImage("font.png")
 
 	var a float32
-	engine.Run(func() {
+	engine.Run(60, func() {
 		const speed = 5.0
 		if keyboard.IsPressed(key.ArrowLeft) || keyboard.IsPressed(key.A) {
 			player.X -= speed

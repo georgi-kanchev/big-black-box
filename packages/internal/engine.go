@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"big-black-box/packages/window"
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -16,27 +17,11 @@ type View struct {
 	MaskArea   Area // In view space. Everything drawn outside of it is cropped. Zero value = no masking.
 }
 
-type Window struct {
-	Title      string
-	Mode       byte // see window.Mode
-	Monitor    byte
-	PixelScale float32
+type Events struct{}
 
-	IsMaximized, IsVsynced bool
-}
-
-type Engine struct {
-	Exiting bool
-
-	TargetTickRate int
-}
-
-type Data struct {
-	Engine Engine
-	Window Window
-}
-
-var State Data
+var Exiting bool
+var TargetTPS int
+var State Events
 var GameLoop func()
 
 var Fonts []*ebiten.Image = make([]*ebiten.Image, 0, 64)
@@ -55,18 +40,19 @@ func Init(gameLoop func()) {
 	ebiten.SetWindowSize(1600, 900)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 }
-func (d Data) Update() error {
-	if d.Engine.Exiting {
+func (e Events) Update() error {
+	if Exiting {
 		return ebiten.Termination
 	}
+	readWindowValues()
 	cacheInput()
 	cacheTime()
 
-	d.BeforeGameLoop()
+	BeforeGameLoop()
 	GameLoop()
-	d.AfterGameLoop()
+	AfterGameLoop()
 	return nil
 }
-func (d Data) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return int(float32(outsideWidth) / d.Window.PixelScale), int(float32(outsideHeight) / d.Window.PixelScale)
+func (e Events) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+	return int(float32(outsideWidth) / window.PixelScale), int(float32(outsideHeight) / window.PixelScale)
 }

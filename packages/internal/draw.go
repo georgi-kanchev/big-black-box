@@ -2,7 +2,6 @@ package internal
 
 import (
 	"cmp"
-	"fmt"
 	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -31,7 +30,7 @@ type DrawItem struct {
 
 	ImageX, ImageY, ImageWidth, ImageHeight float32
 
-	Verts    [8]ebiten.Vertex
+	Verts     [8]ebiten.Vertex
 	VertCount int
 }
 
@@ -40,7 +39,7 @@ const LayerBelow, LayerDefault, LayerAbove Layer = 0, 1, 2
 var DrawQueues [3][]DrawItem
 var DrawCounts [3]int
 
-func (d Data) BeforeGameLoop() {
+func BeforeGameLoop() {
 	for i := range DrawCounts {
 		DrawCounts[i] = 0
 	}
@@ -53,7 +52,7 @@ func Queue(layer Layer, item DrawItem) {
 	}
 	DrawCounts[layer]++
 }
-func (d Data) AfterGameLoop() {
+func AfterGameLoop() {
 	var below = DrawQueues[LayerBelow][:DrawCounts[LayerBelow]]
 	slices.SortStableFunc(below, func(a, b DrawItem) int {
 		return cmp.Compare(a.Z, b.Z)
@@ -63,7 +62,7 @@ func (d Data) AfterGameLoop() {
 		return cmp.Compare(a.Z, b.Z)
 	})
 }
-func (d Data) Draw(screen *ebiten.Image) {
+func (e Events) Draw(screen *ebiten.Image) {
 	for i := range 3 {
 		drawLayer(screen, DrawQueues[i][:DrawCounts[i]])
 	}
@@ -122,5 +121,4 @@ func flush(screen, currentImage *ebiten.Image) {
 	screen.DrawTrianglesShader(vertices, indices, shader, op)
 	vertices = vertices[:0]
 	indices = indices[:0]
-	fmt.Printf("ebiten.Tick(): %v\n", ebiten.Tick())
 }

@@ -1,84 +1,9 @@
 package window
 
-import (
-	"big-black-box/packages/internal"
-
-	"github.com/hajimehoshi/ebiten/v2"
-)
-
 type Mode byte
 
-func GetTitle() string {
-	return internal.State.Window.Title
-}
-func SetTitle(title string) {
-	internal.State.Window.Title = title
-	ebiten.SetWindowTitle(title)
-}
-
-func IsVsynced() bool {
-	return internal.State.Window.IsVsynced
-}
-func SetVsync(enabled bool) {
-	internal.State.Window.IsVsynced = true
-	ebiten.SetVsyncEnabled(enabled)
-}
-
-func GetMode() Mode {
-	return Mode(internal.State.Window.Mode)
-}
-func SetMode(mode Mode) {
-	internal.State.Window.Mode = byte(mode)
-	if mode != 2 && ebiten.IsFullscreen() {
-		ebiten.SetFullscreen(false)
-	}
-
-	switch mode {
-	case 0: // floating
-		ebiten.RestoreWindow()
-	case 1: // maximized
-		ebiten.MaximizeWindow()
-	case 2: // fullscreen
-		ebiten.SetFullscreen(true)
-	}
-}
-
-func SetMonitor(monitor byte) {
-	var monitors []*ebiten.MonitorType
-	monitors = ebiten.AppendMonitors(monitors)
-
-	if int(monitor) >= len(monitors) {
-		monitor = 0
-	}
-
-	internal.State.Window.Monitor = monitor
-	ebiten.SetMonitor(monitors[monitor])
-}
-func GetMonitor() byte {
-	var monitors []*ebiten.MonitorType
-	monitors = ebiten.AppendMonitors(monitors)
-
-	var cur = ebiten.Monitor()
-	for i, m := range monitors {
-		if m == cur {
-			return byte(i)
-		}
-	}
-	return 0
-}
-
-func IsHovered() bool {
-	var x, y = ebiten.CursorPosition()
-	var w, h = internal.State.Layout(ebiten.WindowSize())
-	return x >= 0 && y >= 0 && x < w && y < h
-}
-func IsFocused() bool {
-	return ebiten.IsFocused()
-}
-
-func GetPixelScale() float32 {
-	return internal.State.Window.PixelScale
-}
-func SetPixelScale(pixelScale float32) {
-	internal.State.Window.PixelScale = pixelScale
-}
+var Title = "game"
+var VSync = true
+var CurrentMode Mode = 1
+var Monitor byte = 0
+var PixelScale float32 = 1
