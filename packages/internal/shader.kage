@@ -1,6 +1,8 @@
 //kage:unit texels
 package main
 
+var Smoothing float // 0=Hard; 1=Smooth; 2=Glow etc
+
 // Uniforms:
 //  ViewX, ViewY, ViewWidth, ViewHight
 //  BlurX, BlurY
@@ -46,12 +48,15 @@ func Fragment(position vec4, texCoord vec2, color vec4, custom vec4) vec4 {
     fillColor := unpackColor(color.a)
     roundness, outlineSize := custom.x, custom.z
     outlineColor := unpackColor(custom.y)
+    
     origin, size := imageSrc0Origin(), imageSrc0Size()
     uv := (texCoord - origin) / size 
     halfSize := vec2(width, height) * 0.5
     pLocal := (uv - 0.5) * vec2(width, height)
+    
     maxRadius := min(halfSize.x, halfSize.y)
     radius := abs(roundness) * maxRadius
+    
     q := abs(pLocal) - halfSize + radius
     dShape := length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius
 
@@ -59,27 +64,29 @@ func Fragment(position vec4, texCoord vec2, color vec4, custom vec4) vec4 {
         dShape = max(radius - length(max(q, 0.0)), max(abs(pLocal).x - halfSize.x, abs(pLocal).y - halfSize.y))
     }
     
-    dOut := dShape
+    dEdge := dShape
     if outlineSize != 0.0 {
-        hOut := max(halfSize + outlineSize, 0.0)
+        hOut := halfSize + abs(outlineSize)
         rOut := abs(roundness) * min(hOut.x, hOut.y)
         qOut := abs(pLocal) - hOut + rOut
-        dOut = length(max(qOut, 0.0)) + min(max(qOut.x, qOut.y), 0.0) - rOut
-        if roundness < 0.0 {
-            dOut = max(rOut - length(max(qOut, 0.0)), max(abs(pLocal).x - hOut.x, abs(pLocal).y - hOut.y))
-        }
+        dEdge = length(max(qOut, 0.0)) + min(max(qOut.x, qOut.y), 0.0) - rOut
     }
-    
-    sShape := step(dShape, 0.0)
-    sOut := step(dOut, 0.0)
 
-    totalAlpha, fillAlpha := sShape, sShape
-    if outlineSize > 0.0 {
-        totalAlpha, fillAlpha = sOut, sShape
-    } else if outlineSize < 0.0 {
-        totalAlpha, fillAlpha = sShape, sOut
-    }
+    af := fwidth(dShape) * Smoothing
     
+    sShape := 1.0 - smoothstep(-af, af, dShape)
+    sEdge := 1.0 - smoothstep(-af, af, dEdge)
+
     finalFillColor := imageSrc0At(texCoord) * fillColor
-    return mix(outlineColor, finalFillColor, fillAlpha) * totalAlpha
+    
+    var res vec4
+    if outlineSize > 0.0 {
+        res = mix(outlineColor, finalFillColor, sShape)
+        return res * sEdge
+    } else if outlineSize < 0.0 {
+        res = mix(finalFillColor, outlineColor, 1.0 - sEdge)
+        return res * sShape
+    }
+
+    return finalFillColor * sShape
 }

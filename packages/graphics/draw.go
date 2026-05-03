@@ -21,7 +21,7 @@ func (v View) DrawShape(shape geometry.Shape) {
 		Kind:         internal.KindShape,
 		Shape:        internal.Shape(shape),
 		Color:        palette.White,
-		OutlineSize:  1,
+		OutlineSize:  2,
 		OutlineColor: palette.Green,
 	}
 	item.Verts, item.VertCount = buildVerts(item)
@@ -82,7 +82,7 @@ func (v View) DrawText(shape geometry.Shape, font assets.Font) {
 
 func buildVerts(item internal.DrawItem) (poly [8]ebiten.Vertex, n int) {
 	const pivotX, pivotY float32 = 0.5, 0.5
-	var pad float32 = 1.5
+	var pad float32 = 2
 	if item.OutlineSize > 0 {
 		pad += item.OutlineSize
 	}
@@ -139,19 +139,17 @@ func buildVerts(item internal.DrawItem) (poly [8]ebiten.Vertex, n int) {
 			verts[i].Custom2 = 0
 			verts[i].Custom3 = packTextLayout(item.Kind, 0, false)
 		}
-	default:
-		return poly, 0
 	}
 
 	var imgW, imgH = float32(img.Bounds().Dx()), float32(img.Bounds().Dy())
-	var subW, subH = item.ImageWidth, item.ImageHeight
+	var subW, subH = item.TexWidth, item.TexHeight
 	if subW == 0 {
 		subW = 1
 	}
 	if subH == 0 {
 		subH = 1
 	}
-	var srcX, srcY = item.ImageX * imgW, item.ImageY * imgH
+	var srcX, srcY = item.TexX * imgW, item.TexY * imgH
 	var srcW, srcH = subW * imgW, subH * imgH
 
 	var padU, padV float32
@@ -168,116 +166,9 @@ func buildVerts(item internal.DrawItem) (poly [8]ebiten.Vertex, n int) {
 	verts[2].SrcX, verts[2].SrcY = srcX-padU, srcY+srcH+padV
 	verts[3].SrcX, verts[3].SrcY = srcX+srcW+padU, srcY+srcH+padV
 
-	var view = View(item.View)
-
-	// World → view space (position, zoom, angle).
-	var wtv = view.worldToView()
-	for i := range verts {
-		var dx, dy = wtv.Apply(float64(verts[i].DstX), float64(verts[i].DstY))
-		verts[i].DstX, verts[i].DstY = float32(dx), float32(dy)
-	}
-
-	// Reorder TL,TR,BL,BR → TL,TR,BR,BL (CW polygon winding for Sutherland-Hodgman).
 	poly[0], poly[1], poly[2], poly[3] = verts[0], verts[1], verts[3], verts[2]
 	n = 4
-
-	// Clip to MaskArea in view space.
-	if item.View.MaskArea != (internal.Area{}) {
-		n = clipPoly(&poly, n, item.View.MaskArea)
-		if n < 3 {
-			return poly, 0
-		}
-	}
-
-	// View → screen space (window area offset).
-	var vts = view.viewToScreen()
-	for i := range n {
-		var dx, dy = vts.Apply(float64(poly[i].DstX), float64(poly[i].DstY))
-		poly[i].DstX, poly[i].DstY = float32(dx), float32(dy)
-	}
-
-	// Clip to WindowArea in window/screen space.
-	if item.View.WindowArea != (internal.Area{}) {
-		n = clipPoly(&poly, n, item.View.WindowArea)
-		if n < 3 {
-			return poly, 0
-		}
-	}
-
 	return poly, n
-}
-
-// clipPoly clips a convex polygon against an axis-aligned rectangle using Sutherland-Hodgman.
-// poly holds up to 8 vertices; n is the input count. Returns the new vertex count.
-func clipPoly(poly *[8]ebiten.Vertex, n int, area internal.Area) int {
-	n = clipPlane(poly, n, true, false, area.X)             // left:   x >= area.X
-	n = clipPlane(poly, n, true, true, area.X+area.Width)   // right:  x <= area.X+W
-	n = clipPlane(poly, n, false, false, area.Y)            // top:    y >= area.Y
-	n = clipPlane(poly, n, false, true, area.Y+area.Height) // bottom: y <= area.Y+H
-	return n
-}
-
-// clipPlane clips the polygon against one half-plane.
-// xAxis=true clips on X, xAxis=false on Y.
-// maxSide=false keeps vertices >= val; maxSide=true keeps vertices <= val.
-func clipPlane(poly *[8]ebiten.Vertex, n int, xAxis, maxSide bool, val float32) int {
-	if n == 0 {
-		return 0
-	}
-	var scratch [8]ebiten.Vertex
-	var out int
-
-	coord := func(v ebiten.Vertex) float32 {
-		if xAxis {
-			return v.DstX
-		}
-		return v.DstY
-	}
-	inside := func(v ebiten.Vertex) bool {
-		c := coord(v)
-		if maxSide {
-			return c <= val
-		}
-		return c >= val
-	}
-
-	for i := range n {
-		cur := poly[i]
-		prev := poly[(i+n-1)%n]
-		curIn := inside(cur)
-		prevIn := inside(prev)
-
-		if curIn != prevIn {
-			// Edge crosses the clip boundary — compute intersection.
-			var t float32
-			dc, dp := coord(cur), coord(prev)
-			if dc != dp {
-				t = (val - dp) / (dc - dp)
-			}
-			scratch[out] = lerpVert(prev, cur, t)
-			out++
-		}
-		if curIn {
-			scratch[out] = cur
-			out++
-		}
-	}
-
-	copy(poly[:], scratch[:out])
-	return out
-}
-
-// lerpVert linearly interpolates Dst and Src between a and b at parameter t.
-// Color and Custom fields are copied from a (they are uniform across the polygon).
-func lerpVert(a, b ebiten.Vertex, t float32) ebiten.Vertex {
-	return ebiten.Vertex{
-		DstX:   a.DstX + t*(b.DstX-a.DstX),
-		DstY:   a.DstY + t*(b.DstY-a.DstY),
-		SrcX:   a.SrcX + t*(b.SrcX-a.SrcX),
-		SrcY:   a.SrcY + t*(b.SrcY-a.SrcY),
-		ColorR: a.ColorR, ColorG: a.ColorG, ColorB: a.ColorB, ColorA: a.ColorA,
-		Custom0: a.Custom0, Custom1: a.Custom1, Custom2: a.Custom2, Custom3: a.Custom3,
-	}
 }
 
 // packColor packs an RGBA uint into a 24-bit float (6 bits per channel).

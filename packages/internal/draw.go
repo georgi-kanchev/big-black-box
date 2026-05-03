@@ -36,7 +36,7 @@ type DrawItem struct {
 
 	View View
 
-	ImageX, ImageY, ImageWidth, ImageHeight float32
+	TexX, TexY, TexWidth, TexHeight float32
 
 	Verts     [8]ebiten.Vertex
 	VertCount int
@@ -44,10 +44,10 @@ type DrawItem struct {
 
 const KindNone, KindShape, KindImage, KindText, KindTilemap = 0, 1, 2, 3, 4
 
-const LayerBelow, LayerDefault, LayerAbove Layer = 0, 1, 2
+const LayerBelow, LayerDefault, LayerAbove, LayerCount Layer = 0, 1, 2, 3
 
-var DrawQueues [3][]DrawItem
-var DrawCounts [3]int
+var DrawQueues [LayerCount][]DrawItem
+var DrawCounts [LayerCount]int
 
 func BeforeGameLoop() {
 	for i := range DrawCounts {
@@ -73,7 +73,7 @@ func AfterGameLoop() {
 	})
 }
 func (e Events) Draw(screen *ebiten.Image) {
-	for i := range 3 {
+	for i := range LayerCount {
 		drawLayer(screen, DrawQueues[i][:DrawCounts[i]])
 	}
 }
@@ -91,7 +91,7 @@ func drawLayer(screen *ebiten.Image, items []DrawItem) {
 
 	for _, item := range items {
 		if item.Kind == KindText && item.Font == 0 {
-			flush(screen, currentImage)
+			draw(screen, currentImage)
 			ebitenutil.DebugPrintAt(screen, item.Text, int(item.Shape.X), int(item.Shape.Y))
 			continue
 		}
@@ -107,7 +107,7 @@ func drawLayer(screen *ebiten.Image, items []DrawItem) {
 		}
 
 		if currentImage != nil && img != currentImage {
-			flush(screen, currentImage)
+			draw(screen, currentImage)
 		}
 		currentImage = img
 
@@ -120,14 +120,15 @@ func drawLayer(screen *ebiten.Image, items []DrawItem) {
 			indices = append(indices, base, base+uint16(i), base+uint16(i+1))
 		}
 	}
-	flush(screen, currentImage)
+	draw(screen, currentImage)
 }
 
-func flush(screen, currentImage *ebiten.Image) {
+func draw(screen, currentImage *ebiten.Image) {
 	if len(vertices) == 0 {
 		return
 	}
 	op.Images[0] = currentImage
+	op.Uniforms["Smoothing"] = 1.0
 	screen.DrawTrianglesShader(vertices, indices, shader, op)
 	vertices = vertices[:0]
 	indices = indices[:0]

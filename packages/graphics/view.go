@@ -36,8 +36,8 @@ func (v View) worldToView() ebiten.GeoM {
 	return m
 }
 
-// viewToScreen transforms view-space coordinates to window/screen space.
-func (v View) viewToScreen() ebiten.GeoM {
+// viewToWindow transforms view-space coordinates to window/screen space.
+func (v View) viewToWindow() ebiten.GeoM {
 	var areaX, areaY, areaW, areaH float32
 	if v.WindowArea != (internal.Area{}) {
 		areaX, areaY = v.WindowArea.X, v.WindowArea.Y
@@ -53,6 +53,6 @@ func (v View) viewToScreen() ebiten.GeoM {
 
 func (v View) matrix() ebiten.GeoM {
 	var m = v.worldToView()
-	m.Concat(v.viewToScreen())
+	m.Concat(v.viewToWindow())
 	return m
 }

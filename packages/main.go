@@ -64,7 +64,7 @@ func main() {
 		for i := range staticShapes {
 			staticShapes[i].Angle += rotSpeeds[i]
 		}
-		a++
+		a += 0.3
 
 		obstacle.Roundness = (1 + number.Sine(time.Running())) / 2
 
