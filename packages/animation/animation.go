@@ -1,3 +1,5 @@
+// A solution for animation sequences that does not hold its data (frames),
+// just iterates their count over time.
 package animation
 
 import (
@@ -14,7 +16,7 @@ type Animation struct {
 	Time float32
 }
 
-func NewAnimation(itemCount int, itemsPerSecond float32, loop bool) Animation {
+func New(itemCount int, itemsPerSecond float32, loop bool) Animation {
 	return Animation{ItemCount: itemCount, ItemsPerSecond: itemsPerSecond, IsLooping: loop}
 }
 

@@ -1,3 +1,6 @@
+// keeps track of a draw call queue that gets appended by the game in the Update phase,
+// it gets sorted afterwards and drawn during ebiten's Draw phase
+
 package internal
 
 import (
@@ -8,13 +11,18 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
-type Font byte
-type Image uint16
-
 type Layer byte
 type Kind byte
 
-const KindNone, KindShape, KindImage, KindText, KindTilemap = 0, 1, 2, 3, 4
+type Area struct{ X, Y, Width, Height float32 }
+type Shape struct{ X, Y, Width, Height, Angle, Roundness float32 }
+
+type View struct {
+	X, Y, Zoom, Angle float32
+
+	WindowArea Area // The draw area in window space. Zero value = entire window.
+	MaskArea   Area // In view space. Everything drawn outside of it is cropped. Zero value = no masking.
+}
 
 type DrawItem struct {
 	Kind  Kind
@@ -33,6 +41,8 @@ type DrawItem struct {
 	Verts     [8]ebiten.Vertex
 	VertCount int
 }
+
+const KindNone, KindShape, KindImage, KindText, KindTilemap = 0, 1, 2, 3, 4
 
 const LayerBelow, LayerDefault, LayerAbove Layer = 0, 1, 2
 

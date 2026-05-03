@@ -1,3 +1,5 @@
+// pre-computes a Sine table and uses it to look-up Sin() and Cos() results faster
+
 package internal
 
 import "math"
@@ -12,7 +14,11 @@ func SinCos(degrees float32) (sin, cos float32) {
 	return sineTable[index], sineTable[(index+1024)&4095]
 }
 
-func SinCosCache() {
+// private ========================================================
+// 4096 * 4 bytes = 16KB (Fits comfortably in L1 Cache)
+var sineTable [4096]float32
+
+func sinCosCache() {
 	for i := range 4096 {
 		// Convert index back to radians for the initial calculation
 		// (i / 4096.0) * 2 * Pi
@@ -20,7 +26,3 @@ func SinCosCache() {
 		sineTable[i] = float32(math.Sin(rad))
 	}
 }
-
-// private ========================================================
-// 4096 * 4 bytes = 16KB (Fits comfortably in L1 Cache)
-var sineTable [4096]float32

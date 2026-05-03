@@ -1,8 +1,10 @@
+// not inside the parent package for a shorter API & non-cluttered autocomplete
+
 package key
 
 import (
 	"big-black-box/packages/input/keyboard"
-	
+
 	"github.com/hajimehoshi/ebiten/v2"
 )
 

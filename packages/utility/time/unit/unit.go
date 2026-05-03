@@ -1,3 +1,5 @@
+// not inside the parent package for a shorter API & non-cluttered autocomplete
+
 // Constants, representing units of time. Useful for time convertions.
 package unit
 

@@ -7,15 +7,22 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-func Run(targetTPS uint, gameLoop func()) {
+func Run(targetTPS int, gameLoop func()) {
 	internal.Init(gameLoop)
 
-	ebiten.SetTPS(int(targetTPS))
-	var err = ebiten.RunGame(&internal.State)
+	ebiten.SetTPS(max(targetTPS, 1))
+	var err = ebiten.RunGame(&internal.Engine)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 func Quit() {
 	internal.Exiting = true
+}
+
+// Ticks per second, provided in:
+//
+//	engine.Run(targetTPS, gameLoop)
+func TPS() int {
+	return ebiten.TPS()
 }

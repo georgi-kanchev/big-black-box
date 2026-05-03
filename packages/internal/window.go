@@ -1,3 +1,5 @@
+// tracks the window package data and maps it to ebiten when it changes
+
 package internal
 
 import (
@@ -6,11 +8,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// hooks the window package data to ebiten
-
 var prevTitle string
 var prevVSync bool
-var prevMode, prevMonitor byte
+var prevMode, prevMonitor byte = 255, 255 // default to 255 to trigger an update
 
 func readWindowValues() {
 	if prevTitle != window.Title {

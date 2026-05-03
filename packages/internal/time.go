@@ -1,3 +1,6 @@
+// caches time values that other packages can use
+// and the game can access through utility/time package
+
 package internal
 
 import (

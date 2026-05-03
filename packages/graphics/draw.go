@@ -2,12 +2,12 @@ package graphics
 
 import (
 	"big-black-box/packages/assets"
-	"big-black-box/packages/debug"
 	"big-black-box/packages/geometry"
 	"big-black-box/packages/internal"
 	"big-black-box/packages/utility/angle"
 	"big-black-box/packages/utility/color"
 	"big-black-box/packages/utility/color/palette"
+	"big-black-box/packages/utility/debug"
 	"big-black-box/packages/utility/text"
 	"big-black-box/packages/utility/time"
 	"big-black-box/packages/utility/time/unit"
@@ -210,9 +210,9 @@ func buildVerts(item internal.DrawItem) (poly [8]ebiten.Vertex, n int) {
 // clipPoly clips a convex polygon against an axis-aligned rectangle using Sutherland-Hodgman.
 // poly holds up to 8 vertices; n is the input count. Returns the new vertex count.
 func clipPoly(poly *[8]ebiten.Vertex, n int, area internal.Area) int {
-	n = clipPlane(poly, n, true, false, area.X)            // left:   x >= area.X
-	n = clipPlane(poly, n, true, true, area.X+area.Width)  // right:  x <= area.X+W
-	n = clipPlane(poly, n, false, false, area.Y)           // top:    y >= area.Y
+	n = clipPlane(poly, n, true, false, area.X)             // left:   x >= area.X
+	n = clipPlane(poly, n, true, true, area.X+area.Width)   // right:  x <= area.X+W
+	n = clipPlane(poly, n, false, false, area.Y)            // top:    y >= area.Y
 	n = clipPlane(poly, n, false, true, area.Y+area.Height) // bottom: y <= area.Y+H
 	return n
 }
@@ -271,10 +271,10 @@ func clipPlane(poly *[8]ebiten.Vertex, n int, xAxis, maxSide bool, val float32) 
 // Color and Custom fields are copied from a (they are uniform across the polygon).
 func lerpVert(a, b ebiten.Vertex, t float32) ebiten.Vertex {
 	return ebiten.Vertex{
-		DstX: a.DstX + t*(b.DstX-a.DstX),
-		DstY: a.DstY + t*(b.DstY-a.DstY),
-		SrcX: a.SrcX + t*(b.SrcX-a.SrcX),
-		SrcY: a.SrcY + t*(b.SrcY-a.SrcY),
+		DstX:   a.DstX + t*(b.DstX-a.DstX),
+		DstY:   a.DstY + t*(b.DstY-a.DstY),
+		SrcX:   a.SrcX + t*(b.SrcX-a.SrcX),
+		SrcY:   a.SrcY + t*(b.SrcY-a.SrcY),
 		ColorR: a.ColorR, ColorG: a.ColorG, ColorB: a.ColorB, ColorA: a.ColorA,
 		Custom0: a.Custom0, Custom1: a.Custom1, Custom2: a.Custom2, Custom3: a.Custom3,
 	}

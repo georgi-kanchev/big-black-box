@@ -1,3 +1,5 @@
+// holds some data that internal/window reads from to update ebiten
+
 package window
 
 type Mode byte

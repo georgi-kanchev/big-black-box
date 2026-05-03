@@ -1,3 +1,5 @@
+// not inside the parent package for a shorter API & non-cluttered autocomplete
+
 // Constants, representing the 8 universal directions in 360 degree angles.
 package angle8
 

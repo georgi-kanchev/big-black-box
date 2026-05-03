@@ -1,3 +1,6 @@
+// caches the input values this tick that other packages can use
+// and the game can access through the input package
+
 package internal
 
 import (

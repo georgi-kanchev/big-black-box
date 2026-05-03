@@ -1,3 +1,5 @@
+// not inside the parent package for a shorter API & non-cluttered autocomplete
+
 // Constants, representing premade colors in the form of uint numbers.
 package palette
 
