@@ -10,7 +10,7 @@ import (
 
 type Events struct{}
 
-var Exiting bool
+var IsExiting bool
 var TargetTPS int
 var Engine Events
 var GameLoop func()
@@ -24,9 +24,10 @@ func Init(gameLoop func()) {
 
 	ebiten.SetWindowSize(1600, 900)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
+	readWindowValues()
 }
 func (e Events) Update() error {
-	if Exiting {
+	if IsExiting {
 		return ebiten.Termination
 	}
 	readWindowValues()

@@ -13,25 +13,22 @@ import (
 )
 
 func main() {
-	const offset = 250.0
-
 	// Main view: camera follows player, MaskArea limits visible world to a 600x450 region.
 	var view = graphics.NewView()
-	view.MaskArea = graphics.Area{X: -300, Y: -225, Width: 600, Height: 450}
 
 	// Minimap: overview of the whole playfield in the top-left corner.
 	var minimap = graphics.View{
-		X: 500, Y: 350,
+		X: 0, Y: 0,
 		Zoom:       0.15,
 		WindowArea: graphics.Area{X: 10, Y: 10, Width: 320, Height: 200},
 	}
 
-	var obstacle = geometry.NewRoundedRectangle(400+offset, 400, 450, 250, 0, 0.5)
-	var player = geometry.NewCircle(100+offset, 100, 40)
+	var obstacle = geometry.NewRoundedRectangle(400, 400, 450, 250, 0, 0.5)
+	var player = geometry.NewCircle(0, 0, 40)
 	var staticShapes = []geometry.Shape{
-		geometry.NewCapsule(150+offset, 600, 350+offset, 750, 30),
-		geometry.NewRoundedRectangle(offset-100, 400, 60, 400, 0, 0.2),
-		geometry.NewRectangle(750+offset, 250, 150, 150, 45),
+		geometry.NewCapsule(150, 600, 350, 750, 30),
+		geometry.NewRoundedRectangle(-100, 400, 60, 400, 0, 0.2),
+		geometry.NewRectangle(750, 250, 150, 150, 45),
 	}
 	var rotSpeeds = []float32{0, 0.3, -0.2}
 

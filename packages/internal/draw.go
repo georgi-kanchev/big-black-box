@@ -36,6 +36,8 @@ type DrawItem struct {
 
 	View View
 
+	MaskArea Area
+
 	TexX, TexY, TexWidth, TexHeight float32
 
 	Verts     [8]ebiten.Vertex

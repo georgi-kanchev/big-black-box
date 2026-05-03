@@ -17,7 +17,7 @@ func Run(targetTPS int, gameLoop func()) {
 	}
 }
 func Quit() {
-	internal.Exiting = true
+	internal.IsExiting = true
 }
 
 // Ticks per second, provided in:
