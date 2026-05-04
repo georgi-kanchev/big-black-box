@@ -4,7 +4,6 @@ import (
 	"big-black-box/packages/assets"
 	"big-black-box/packages/geometry"
 	"big-black-box/packages/internal"
-	"big-black-box/packages/utility/angle"
 	"big-black-box/packages/utility/color"
 	"big-black-box/packages/utility/color/palette"
 	"big-black-box/packages/utility/debug"
@@ -32,7 +31,7 @@ func (v View) DrawImage(shape geometry.Shape, image assets.Image) {
 		Kind:         internal.KindImage,
 		Shape:        internal.Shape(shape),
 		Color:        palette.White,
-		Image:        internal.Image(image),
+		Image:        internal.ImageId(image),
 		OutlineSize:  1,
 		OutlineColor: palette.Red,
 	})
@@ -43,7 +42,7 @@ func (v View) DrawText(shape geometry.Shape, font assets.Font) {
 		Kind:  internal.KindText,
 		Shape: internal.Shape(shape),
 		Color: palette.White,
-		Font:  internal.Font(font),
+		Font:  internal.FontId(font),
 	})
 }
 
@@ -98,13 +97,12 @@ func queue(item *internal.DrawItem) {
 
 	var poly [4]ebiten.Vertex
 	var packedCol = packColor(item.Color)
-	var rads = angle.ToRadians(item.Shape.Angle)
 
 	for i := range poly {
 		poly[i].ColorR = origW
 		poly[i].ColorG = origH
-		poly[i].ColorB = rads
-		poly[i].ColorA = packedCol
+		poly[i].ColorB = packedCol
+		poly[i].ColorA = float32(item.Kind)
 	}
 
 	poly[0].DstX, poly[0].DstY = x+x0, y+y0
@@ -120,26 +118,31 @@ func queue(item *internal.DrawItem) {
 			poly[i].Custom0 = item.Shape.Roundness
 			poly[i].Custom1 = packColor(item.OutlineColor)
 			poly[i].Custom2 = item.OutlineSize
-			poly[i].Custom3 = float32(item.Kind)
+			poly[i].Custom3 = 0
 		}
 	case internal.KindImage:
-		img = internal.Images[item.Image-1]
+		if item.Image != 0 {
+			img = internal.Images[item.Image-1]
+		} else {
+			img = internal.White1x1
+		}
 		for i := range poly {
 			poly[i].Custom0 = item.Shape.Roundness
 			poly[i].Custom1 = packColor(item.OutlineColor)
 			poly[i].Custom2 = item.OutlineSize
-			poly[i].Custom3 = float32(item.Kind)
+			poly[i].Custom3 = 0
 		}
 	case internal.KindText:
 		if item.Font == 0 {
-			return
+			img = internal.White1x1
+		} else {
+			img = internal.Fonts[item.Font-1]
 		}
-		img = internal.Fonts[item.Font-1]
 		for i := range poly {
 			poly[i].Custom0 = 0
 			poly[i].Custom1 = 0
 			poly[i].Custom2 = 0
-			poly[i].Custom3 = packTextLayout(item.Kind, 0, false)
+			poly[i].Custom3 = 0
 		}
 	}
 
@@ -300,14 +303,6 @@ func clipPolyEdge(in, out []ebiten.Vertex, isX bool, edgeVal float32, keepGreate
 func packColor(c uint) float32 {
 	r, g, b, a := color.Channels(c)
 	return float32(uint32(r>>2)<<18 | uint32(g>>2)<<12 | uint32(b>>2)<<6 | uint32(a>>2))
-}
-func packTextLayout(kind internal.Kind, align byte, wordWrap bool) float32 {
-	v := uint32(kind & 0x7)
-	if wordWrap {
-		v |= 1 << 3
-	}
-	v |= uint32(align&0x7) << 4
-	return float32(v)
 }
 
 func intersectAreas(a, b Area) Area {

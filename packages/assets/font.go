@@ -13,7 +13,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type Font internal.Font
+type Font internal.FontId
+
+const DefaultFont Font = 0
 
 func LoadFont(pngPath, xmlPath string) Font {
 	var fontData = font{}
@@ -70,8 +72,7 @@ func LoadFont(pngPath, xmlPath string) Font {
 		asset.Set(i*2+1, 0, c2)
 	}
 
-	internal.Fonts = append(internal.Fonts, asset)
-	return Font(len(internal.Fonts))
+	return Font(internal.AddFont(asset))
 }
 
 // private ========================================================

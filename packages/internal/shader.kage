@@ -12,29 +12,27 @@ var Smoothing float // 0=Hard; 1=Smooth; 2=Glow etc
 // texCoord.y | CenterY
 // color.r    | Width
 // color.g    | Height
-// color.b    | Rotation
-// color.a    | Tint         (packed RGBA, 6 bits per channel)
+// color.b    | Tint         (packed RGBA, 6 bits per channel)
+// color.a    | Kind
 
 // Shape/Image:
 //  custom.x | Roundness
 //  custom.y | OutlineColor  (packed RGBA, 6 bits per channel)
 //  custom.z | OutlineSize
-//  custom.w | Kind          Layout: Kind[2:0]
+//  custom.w |
 
 // Text:
-//  custom.x | SymbolGap
-//  custom.y | LineGap
-//  custom.z | LineHeight
-//  custom.w | Kind + WordWrap + Align  Layout: Align[6:4] WordWrap[3] Kind[2:0]
+//  custom.x |
+//  custom.y |
+//  custom.z |
+//  custom.w |
 
 // Tilemap:
 //  custom.x | TileSize
 //  custom.y | TileRows
 //  custom.z | TileColumns
-//  custom.w | Kind          Layout: Kind[2:0]
+//  custom.w |
 
-// unpackColor decodes a 24-bit packed float into a normalized vec4.
-// Packing layout: R6[23:18] G6[17:12] B6[11:6] A6[5:0], 6 bits per channel.
 func unpackColor(packed float) vec4 {
 	r := floor(packed / 262144.0)
 	g := floor(mod(packed, 262144.0) / 4096.0)
@@ -45,7 +43,7 @@ func unpackColor(packed float) vec4 {
 
 func Fragment(position vec4, texCoord vec2, color vec4, custom vec4) vec4 {
     width, height := color.r, color.g
-    fillColor := unpackColor(color.a)
+    fillColor := unpackColor(color.b)
     roundness, outlineSize := custom.x, custom.z
     outlineColor := unpackColor(custom.y)
     

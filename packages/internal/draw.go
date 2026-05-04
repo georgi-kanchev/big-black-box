@@ -27,8 +27,8 @@ type View struct {
 type DrawItem struct {
 	Kind  Kind
 	Shape Shape
-	Image Image
-	Font  Font
+	Image ImageId
+	Font  FontId
 
 	Color, OutlineColor uint
 	OutlineSize, Z      float32
@@ -101,7 +101,11 @@ func drawLayer(screen *ebiten.Image, items []DrawItem) {
 		var img *ebiten.Image
 		switch item.Kind {
 		case KindImage:
-			img = Images[item.Image-1]
+			if item.Image != 0 {
+				img = Images[item.Image-1]
+			} else {
+				img = White1x1
+			}
 		case KindText:
 			img = Fonts[item.Font-1]
 		default:

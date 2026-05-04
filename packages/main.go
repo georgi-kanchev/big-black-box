@@ -32,7 +32,7 @@ func main() {
 	}
 	var rotSpeeds = []float32{0, 0.3, -0.2}
 
-	var img = assets.LoadImage("font.png")
+	var font = assets.LoadFont("font.png", "font.xml")
 
 	var a float32
 	engine.Run(60, func() {
@@ -87,7 +87,7 @@ func main() {
 		if !number.IsNaN(hitX) {
 			view.DrawShape(geometry.NewCircle(hitX, hitY, 6))
 		}
-		view.DrawImage(geometry.NewRoundedRectangle(300, 300, 200, 200, a, 0), img)
+		view.DrawText(geometry.NewRoundedRectangle(300, 300, 200, 200, a, 0), font)
 		view.DrawFPS()
 
 		// Minimap: same shapes, clipped to the WindowArea.

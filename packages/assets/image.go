@@ -10,7 +10,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type Image internal.Image
+type Image internal.ImageId
+
+const DefaultImage Image = 0
 
 func LoadImage(imagePath string) Image {
 	var img, _, err = image.Decode(bytes.NewReader(file.LoadBytes(imagePath)))
@@ -19,7 +21,14 @@ func LoadImage(imagePath string) Image {
 		return 0
 	}
 
-	var asset = ebiten.NewImageFromImage(img)
-	internal.Images = append(internal.Images, asset)
-	return Image(len(internal.Images))
+	return Image(internal.AddImage(ebiten.NewImageFromImage(img)))
+}
+
+func (i Image) Size() (width, height int) {
+	var img = internal.Images[i]
+	var bounds = img.Bounds()
+	return bounds.Dx(), bounds.Dy()
+}
+func (i Image) Unload() {
+
 }
