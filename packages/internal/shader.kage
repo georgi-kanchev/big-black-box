@@ -2,30 +2,27 @@
 package main
 
 var Smoothing float // 0=Hard; 1=Smooth; 2=Glow etc
-
-// Uniforms:
-//  ViewX, ViewY, ViewWidth, ViewHight
-//  BlurX, BlurY
-//  Gamma, Saturation, Brightness, Contrast, Grayscale
+var BlurX, BlurY float
+var Gamma, Saturation, Brightness, Contrast, Grayscale float
 
 // texCoord.x | CenterX
 // texCoord.y | CenterY
 // color.r    | Width
 // color.g    | Height
-// color.b    | Tint         (packed RGBA, 6 bits per channel)
+// color.b    | Tint (6+6+6+6 = 24bits)
 // color.a    | Kind
 
 // Shape/Image:
 //  custom.x | Roundness
-//  custom.y | OutlineColor  (packed RGBA, 6 bits per channel)
+//  custom.y | OutlineColor (6+6+6+6 = 24 bits)
 //  custom.z | OutlineSize
 //  custom.w |
 
 // Text:
-//  custom.x |
-//  custom.y |
-//  custom.z |
-//  custom.w |
+//  custom.x | OutlineColor (6+6+6+6 = 24 bits)
+//  custom.y | ShadowColor (6+6+6+6 = 24 bits)
+//  custom.z | ShadowWeight, ShadowBlur, ShadowX, ShadowY (6+6+6+6 = 24 bits)
+//  custom.w | Weight, OutlineWeight, Underline, Crossout (6+6+1+1 = 14 bits)
 
 // Tilemap:
 //  custom.x | TileSize
@@ -33,58 +30,103 @@ var Smoothing float // 0=Hard; 1=Smooth; 2=Glow etc
 //  custom.z | TileColumns
 //  custom.w |
 
-func unpackColor(packed float) vec4 {
-	r := floor(packed / 262144.0)
-	g := floor(mod(packed, 262144.0) / 4096.0)
-	b := floor(mod(packed, 4096.0) / 64.0)
-	a := mod(packed, 64.0)
+func unpack(packed float) vec4 {
+	var r = floor(packed / 262144.0)
+	var g = floor(mod(packed, 262144.0) / 4096.0)
+	var b = floor(mod(packed, 4096.0) / 64.0)
+	var a = mod(packed, 64.0)
 	return vec4(r, g, b, a) / 63.0
 }
 
-func Fragment(position vec4, texCoord vec2, color vec4, custom vec4) vec4 {
-    width, height := color.r, color.g
-    fillColor := unpackColor(color.b)
-    roundness, outlineSize := custom.x, custom.z
-    outlineColor := unpackColor(custom.y)
+func shape(texCoord vec2, color vec4, custom vec4) vec4 {
+    var width, height = color.r, color.g
+    var fillColor = unpack(color.b)
+    var roundness, outlineSize = custom.x, custom.z
+    var outlineColor = unpack(custom.y)
     
-    origin, size := imageSrc0Origin(), imageSrc0Size()
-    uv := (texCoord - origin) / size 
-    halfSize := vec2(width, height) * 0.5
-    pLocal := (uv - 0.5) * vec2(width, height)
+    var origin, size = imageSrc0Origin(), imageSrc0Size()
+    var uv = (texCoord - origin) / size
+    var halfSize = vec2(width, height) * 0.5
+    var pLocal = (uv - 0.5) * vec2(width, height)
     
-    maxRadius := min(halfSize.x, halfSize.y)
-    radius := abs(roundness) * maxRadius
+    var maxRadius = min(halfSize.x, halfSize.y)
+    var radius = abs(roundness) * maxRadius
     
-    q := abs(pLocal) - halfSize + radius
-    dShape := length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius
-
+    var q = abs(pLocal) - halfSize + radius
+    var dShape = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius
+    
     if roundness < 0.0 {
-        dShape = max(radius - length(max(q, 0.0)), max(abs(pLocal).x - halfSize.x, abs(pLocal).y - halfSize.y))
-    }
-    
-    dEdge := dShape
-    if outlineSize != 0.0 {
-        hOut := halfSize + abs(outlineSize)
-        rOut := abs(roundness) * min(hOut.x, hOut.y)
-        qOut := abs(pLocal) - hOut + rOut
-        dEdge = length(max(qOut, 0.0)) + min(max(qOut.x, qOut.y), 0.0) - rOut
+        dShape = max(radius-length(max(q, 0.0)), max(abs(pLocal).x-halfSize.x, abs(pLocal).y-halfSize.y))
     }
 
-    af := fwidth(dShape) * Smoothing
-    
-    sShape := 1.0 - smoothstep(-af, af, dShape)
-    sEdge := 1.0 - smoothstep(-af, af, dEdge)
-
-    finalFillColor := imageSrc0At(texCoord) * fillColor
-    
-    var res vec4
+    var dEdge = dShape
     if outlineSize > 0.0 {
-        res = mix(outlineColor, finalFillColor, sShape)
-        return res * sEdge
+        dEdge = dShape - outlineSize 
     } else if outlineSize < 0.0 {
-        res = mix(finalFillColor, outlineColor, 1.0 - sEdge)
-        return res * sShape
+        dEdge = dShape + abs(outlineSize) 
     }
 
+    var af = 1.0 * Smoothing 
+    
+    var sShape = 1.0 - smoothstep(-af, af, dShape)
+    var sEdge = 1.0 - smoothstep(-af, af, dEdge)
+
+    var finalFillColor = imageSrc0At(texCoord) * fillColor
+    
+    if outlineSize > 0.0 {
+        var baseMask = outlineColor * sEdge
+        var topMask = finalFillColor * sShape
+        return topMask + baseMask * (1.0 - topMask.a)
+    } else if outlineSize < 0.0 {
+        var baseMask = finalFillColor * sShape
+        var innerEdgeMask = smoothstep(-af, af, dEdge) 
+        var topMask = outlineColor * innerEdgeMask * sShape
+        return topMask + baseMask * (1.0 - topMask.a)
+    }
+    
     return finalFillColor * sShape
+}
+func text(texCoord vec2, color vec4, custom vec4) vec4 {
+	var fillColor = unpack(color.b)
+	var outlineColor = unpack(custom.x)
+	var shadowColor = unpack(custom.y)
+	var shadParams = unpack(custom.z) // Weight, Blur, X, Y
+	var textParams = unpack(custom.w) // Weight, OutlWeight, Underline, Crossout
+	
+	var weight = textParams.x * 0.2 // Remap parameters to usable scales
+	var outlW = textParams.y * 0.2
+	var shadowOffset = (shadParams.zw - 0.5) * 20.0 // -10 to +10 pixels
+	var shadowBlur = shadParams.y * 0.1
+	
+	var dist = imageSrc0At(texCoord).a
+	var af = fwidth(dist) * (1.0 + Smoothing)
+	
+	var sDist = imageSrc0At(texCoord - shadowOffset).a
+	var sThreshold = 0.5 - (shadParams.x * 0.2)
+	var sAlpha = smoothstep(sThreshold-af-shadowBlur, sThreshold+af+shadowBlur, sDist)
+	
+	var oThreshold = 0.5 - weight - outlW
+	var oAlpha = smoothstep(oThreshold-af, oThreshold+af, dist)
+	
+	var fThreshold = 0.5 - weight
+	var fAlpha = smoothstep(fThreshold-af, fThreshold+af, dist)
+	
+	var res = shadowColor * (sAlpha * shadowColor.a)
+	res = mix(res, outlineColor, oAlpha * outlineColor.a)
+	res = mix(res, fillColor, fAlpha)
+
+	return res
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4, custom vec4) vec4 {
+	var kind = floor(color.a + 0.5)
+	
+	if kind > 0.9 && kind < 2.1 {
+		return shape(texCoord, color, custom)
+	}
+	if kind > 2.9 && kind < 3.1 {
+		return text(texCoord, color, custom)
+	}
+	
+	return imageSrc0At(texCoord) * unpack(color.b) // Default/Fallback
 }

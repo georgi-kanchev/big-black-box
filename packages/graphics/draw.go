@@ -20,7 +20,7 @@ func (v View) DrawShape(shape geometry.Shape) {
 		Kind:         internal.KindShape,
 		Shape:        internal.Shape(shape),
 		Color:        palette.White,
-		OutlineSize:  2,
+		OutlineSize:  -4,
 		OutlineColor: palette.Green,
 	})
 
@@ -32,7 +32,7 @@ func (v View) DrawImage(shape geometry.Shape, image assets.Image) {
 		Shape:        internal.Shape(shape),
 		Color:        palette.White,
 		Image:        internal.ImageId(image),
-		OutlineSize:  1,
+		OutlineSize:  -4,
 		OutlineColor: palette.Red,
 	})
 }
@@ -81,7 +81,7 @@ func queue(item *internal.DrawItem) {
 	}
 
 	const pivotX, pivotY float32 = 0.5, 0.5
-	var pad float32 = 2
+	var pad float32 = 5
 	if item.OutlineSize > 0 {
 		pad += item.OutlineSize
 	}

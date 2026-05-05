@@ -134,7 +134,7 @@ func draw(screen, currentImage *ebiten.Image) {
 		return
 	}
 	op.Images[0] = currentImage
-	op.Uniforms["Smoothing"] = 1.0
+	op.Uniforms["Smoothing"] = 0.5
 	screen.DrawTrianglesShader(vertices, indices, shader, op)
 	vertices = vertices[:0]
 	indices = indices[:0]

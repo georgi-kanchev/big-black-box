@@ -10,7 +10,7 @@ var Title = "game"
 var VSync = true
 var CurrentMode Mode = 1
 var Monitor byte = 0
-var PixelScale float32 = 2
+var PixelScale float32 = 1
 
 var Width, Height float32 // Read-only
 

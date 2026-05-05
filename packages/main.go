@@ -20,15 +20,15 @@ func main() {
 	var minimap = graphics.View{
 		X: 0, Y: 0,
 		Zoom:       0.15,
-		WindowArea: graphics.Area{X: 10, Y: 10, Width: 320, Height: 200},
+		WindowArea: graphics.Area{X: 10, Y: 10, Width: 320 * 2, Height: 200 * 2},
 	}
 
-	var obstacle = geometry.NewRoundedRectangle(400, 400, 450, 250, 0, 0.5)
-	var player = geometry.NewCircle(0, 0, 40)
+	var obstacle = geometry.NewRoundedRectangle(400*2, 400*2, 450*2, 250*2, 0, 0.5)
+	var player = geometry.NewCircle(0, 0, 50*2)
 	var staticShapes = []geometry.Shape{
-		geometry.NewCapsule(150, 600, 350, 750, 30),
-		geometry.NewRoundedRectangle(-100, 400, 60, 400, 0, 0.2),
-		geometry.NewRectangle(750, 250, 150, 150, 45),
+		geometry.NewCapsule(150*2, 600*2, 350*2, 750*2, 30*2),
+		geometry.NewRoundedRectangle(-100*2, 400*2, 60*2, 400*2, 0, 0.2),
+		geometry.NewRectangle(750*2, 250*2, 150*2, 150*2, 45),
 	}
 	var rotSpeeds = []float32{0, 0.3, -0.2}
 
@@ -36,7 +36,7 @@ func main() {
 
 	var a float32
 	engine.Run(60, func() {
-		const speed = 5.0
+		const speed = 10.0
 		if keyboard.IsPressed(key.ArrowLeft) || keyboard.IsPressed(key.A) {
 			player.X -= speed
 		}
@@ -87,7 +87,7 @@ func main() {
 		if !number.IsNaN(hitX) {
 			view.DrawShape(geometry.NewCircle(hitX, hitY, 6))
 		}
-		view.DrawText(geometry.NewRoundedRectangle(300, 300, 200, 200, a, 0), font)
+		view.DrawText(geometry.NewRoundedRectangle(0, 0, 1000, 1000, a, 0), font)
 		view.DrawFPS()
 
 		// Minimap: same shapes, clipped to the WindowArea.
